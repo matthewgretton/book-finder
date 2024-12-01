@@ -28,13 +28,8 @@ console_command = '/rails/bin/rails console'
   destination = "/app/storage"
 
 [deploy]
-  release_command =  """
-    ls -la /app/storage &&
-    echo 'Starting database preparation' &&
-    /rails/bin/rails db:prepare --trace &&
-    echo 'Database preparation complete' &&
-    ls -la /app/storage
-  """
+  release_command = "/rails/bin/rails db:prepare"
 
 [env]
+  RAILS_LOG_TO_STDOUT = "true"
   RAILS_LOG_LEVEL = "debug"
