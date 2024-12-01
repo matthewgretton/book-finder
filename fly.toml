@@ -28,7 +28,7 @@ console_command = '/rails/bin/rails console'
   destination = "/app/storage"
 
 [deploy]
-  release_command = "RAILS_ENV=production RAILS_LOG_LEVEL=debug bundle exec rails db:prepare"
+  release_command = "bundle exec rails db:prepare"
 
 [env]
   RAILS_LOG_TO_STDOUT = "true"
