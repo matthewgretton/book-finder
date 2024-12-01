@@ -26,3 +26,6 @@ console_command = '/rails/bin/rails console'
 [mounts]
   source = "data"
   destination = "/app/storage"
+
+[deploy]
+  release_command = "/rails/bin/rails db:migrate"
