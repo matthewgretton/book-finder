@@ -27,9 +27,3 @@ console_command = '/rails/bin/rails console'
   source = "data"
   destination = "/app/storage"
 
-[deploy]
-  release_command = "/rails/bin/rails db:prepare"
-
-[env]
-  RAILS_LOG_TO_STDOUT = "true"
-  RAILS_LOG_LEVEL = "debug"
