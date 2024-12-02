@@ -28,7 +28,7 @@ console_command = '/rails/bin/rails console'
   destination = "/app/storage"
 
 [deploy]
-release_command = "echo 'Starting database preparation'; ./bin/rails db:prepare --trace; echo 'Database preparation complete'"
+release_command = "./bin/release"
 
 
 

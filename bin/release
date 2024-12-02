@@ -1,0 +1,4 @@
+#!/bin/bash
+echo "Starting database preparation"
+./bin/rails db:prepare --trace
+echo "Database preparation complete"
