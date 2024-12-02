@@ -25,10 +25,13 @@ console_command = '/rails/bin/rails console'
 
 [mounts]
   source = "data"
-  destination = "/app/storage"
+  destination = "/rails/storage"
 
 [deploy]
-release_command = "./bin/release"
+  release_command = "./bin/rails db:prepare"
+  [[deploy.mounts]]
+    source = "data"
+    destination = "/rails/storage"
 
 
 
