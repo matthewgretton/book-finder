@@ -170,9 +170,6 @@ class BooksController < ApplicationController
         books << extract_book_from_details(agent, book_detail, fetch_additional_info)
       end
 
-      # Sort the books by series (handling nil values) and published year if the flag is set
-      books.sort_by! { |book| [ book.series || "", book.published.to_i ] } if fetch_additional_info
-
       books
     end
 end

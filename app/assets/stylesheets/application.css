@@ -2,11 +2,9 @@
 td, th {
     word-wrap: break-word;
     white-space: normal;
-  }
-  
-  /* Ensure buttons have consistent styling */
-  .button {
-    font-weight: normal;
-  }
+}
 
- 
+/* Ensure buttons have consistent styling */
+.button {
+    font-weight: normal; /* Adjusted to make the text bolder */
+}
