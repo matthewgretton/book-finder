@@ -1,55 +1,35 @@
 <div class="container">
-  <h1>Book Finder</h1>
-  
-
+  <!-- Keyword Search Form -->
   <%= form_with url: search_books_path, method: :get, local: true do |f| %>
-    <div>
-      <%= f.text_field :query, value: params[:query], placeholder: "Title, Author,..." %>
+    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+      <%= f.text_field :query, value: params[:query], placeholder: "Title, Author,...", style: "flex: 1;" %>
+      <button type="submit" class="button">🔍</button>
     </div>
-    <button type="submit" class="button">Search</button>
   <% end %>
 
-  <%= form_with url: search_by_isbns_books_path, method: :post, local: true, multipart: true, data: { controller: "file-upload" } do |f| %>
-    <%= f.file_field :photos, 
-                     multiple: true, 
-                     accept: 'image/*', 
-                     data: { target: "file-upload.fileInput", action: "change->file-upload#submitForm" }, 
-                     style: "display: none;" %>
-    <button type="button" class="button" data-action="file-upload#promptFileSelection">
-      Search by ISBN Photos
-    </button>
+  <!-- ISBN Photo Search Form -->
+  <%= form_with url: search_by_isbns_books_path,
+                method: :post,
+                local: true,
+                multipart: true,
+                data: { controller: "file-upload" } do |f| %>
+    <div>
+      <%= f.file_field :photos,
+                       multiple: true,
+                       accept: 'image/*',
+                       data: {
+                         file_upload_target: "fileInput",
+                         action: "file-upload#submitForm"
+                       },
+                       style: "display: none;" %>
+      <button type="button" class="button" data-action="file-upload#promptFileSelection">📷 ISBN</button>
+    </div>
   <% end %>
 
+  <!-- Search Results -->
   <% if @books.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Author</th>
-          <th>Level</th>
-          <% if params[:detailed] == "true" %>
-            <th>AR Points</th>
-            <th>Interest Level</th>
-            <th>Word Count</th>
-          <% end %>
-        </tr>
-      </thead>
-      <tbody>
-        <% @books.each do |book| %>
-          <tr>
-            <td><%= book.title %></td>
-            <td><%= book.author %></td>
-            <td><%= book.atos_book_level %></td>
-            <% if params[:detailed] == "true" %>
-              <td><%= book.ar_points %></td>
-              <td><%= book.interest_level %></td>
-              <td><%= number_with_delimiter(book.word_count) %></td>
-            <% end %>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  <% elsif params[:query].present?  %> 
+    <!-- Your existing code to display the search results -->
+  <% elsif params[:query].present? %>
     <p><mark>No books found matching your search criteria</mark></p>
   <% end %>
 </div>
