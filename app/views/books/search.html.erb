@@ -1,5 +1,4 @@
 <main>
-  <!-- Text Search -->
   <%= form_with url: search_books_path, method: :get, local: true do |f| %>
     <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem;">
       <%= f.text_field :query, 
