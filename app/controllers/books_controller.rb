@@ -6,12 +6,8 @@ class BooksController < ApplicationController
 
   def search
     if params[:query].present?
-      params[:detailed]="true"
 
-
-      fetch_additional_info = params[:detailed] == "true"
-
-      @books = search_arbookfind(params[:query], fetch_additional_info)
+      @books = search_arbookfind(params[:query])
     else
       @books = []
     end
@@ -94,7 +90,7 @@ class BooksController < ApplicationController
       results_page
     end
 
-    def extract_book_from_details(agent, book_detail, fetch_additional_info)
+    def extract_book_from_details(agent, book_detail)
       # Extract the title, author, and ATOS/BL level directly from the search results
       title = book_detail.at_css("a#book-title").text.strip
       author = book_detail.at_css("p").text.strip.split("\n").first.strip
@@ -110,28 +106,25 @@ class BooksController < ApplicationController
       ar_points = 0.0
       word_count = 0
 
-      # Fetch additional information if the flag is set
-      if fetch_additional_info
-        detail_link = book_detail.at_css("a#book-title")["href"]
-        detail_page_url = "https://www.arbookfind.co.uk/#{detail_link}"
-        detail_page = agent.get(detail_page_url)
-        detail_doc = Nokogiri::HTML(detail_page.body)
+      detail_link = book_detail.at_css("a#book-title")["href"]
+      detail_page_url = "https://www.arbookfind.co.uk/#{detail_link}"
+      detail_page = agent.get(detail_page_url)
+      detail_doc = Nokogiri::HTML(detail_page.body)
 
-        # Extract additional information from the detailed page
-        series_elements = detail_doc.css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblSeriesLabel")
-        series = series_elements.map { |element| element.text.strip.chomp(";") }.join(", ")
-        ar_points_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblPoints")
-        ar_points = ar_points_element ? ar_points_element.text.strip.to_f : 0.0
-        word_count_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblWordCount")
-        word_count = word_count_element ? word_count_element.text.strip.to_i : 0
+      # Extract additional information from the detailed page
+      series_elements = detail_doc.css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblSeriesLabel")
+      series = series_elements.map { |element| element.text.strip.chomp(";") }.join(", ")
+      ar_points_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblPoints")
+      ar_points = ar_points_element ? ar_points_element.text.strip.to_f : 0.0
+      word_count_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblWordCount")
+      word_count = word_count_element ? word_count_element.text.strip.to_i : 0
 
-        details_table = detail_doc.at_css("table#ctl00_ContentPlaceHolder1_ucBookDetail_tblPublisherTable")
-        if details_table
-          first_row = details_table.css("tr")[1] # Get the first data row (second row in the table)
-          if first_row
-            isbn = first_row.at_css("td:nth-child(2)").text.strip
-            published = first_row.at_css("td:nth-child(3)").text.strip.to_i
-          end
+      details_table = detail_doc.at_css("table#ctl00_ContentPlaceHolder1_ucBookDetail_tblPublisherTable")
+      if details_table
+        first_row = details_table.css("tr")[1] # Get the first data row (second row in the table)
+        if first_row
+          isbn = first_row.at_css("td:nth-child(2)").text.strip
+          published = first_row.at_css("td:nth-child(3)").text.strip.to_i
         end
       end
 
@@ -150,7 +143,7 @@ class BooksController < ApplicationController
     end
 
     # Method to search AR Bookfind and extract book details
-    def search_arbookfind(query, fetch_additional_info)
+    def search_arbookfind(query)
       # Initialize Mechanize agent
       agent = Mechanize.new
 
@@ -170,7 +163,7 @@ class BooksController < ApplicationController
 
       # Iterate over each book detail parent element
       book_details.each do |book_detail|
-        books << extract_book_from_details(agent, book_detail, fetch_additional_info)
+        books << extract_book_from_details(agent, book_detail)
       end
 
       books
@@ -179,9 +172,9 @@ class BooksController < ApplicationController
     def interest_level_to_age_range(interest_level)
       case interest_level
       when "LY"
-        "5y - 8y"
+        "5y-8y"
       when "MY"
-        "9y - 13y"
+        "9y-13y"
       when "MY+"
         "12y+"
       when "UY"

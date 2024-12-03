@@ -38,11 +38,9 @@
           <th>Title</th>
           <th>Author</th>
           <th>Level</th>
-          <% if params[:detailed] == "true" %>
-            <th>Interest</th>
+          <th>Interest</th>
             <th>Points</th>
             <th>Word Count</th>
-          <% end %>
         </tr>
       </thead>
       <tbody>
@@ -51,11 +49,9 @@
             <td><%= book.title %></td>
             <td><%= book.author %></td>
             <td><%= book.atos_book_level %></td>
-            <% if params[:detailed] == "true" %>
-              <td><%= book.interest_level %></td>
+            <td><%= book.interest_level %></td>
               <td><%= book.ar_points %></td>
               <td><%= number_with_delimiter(book.word_count) %></td>
-            <% end %>
           </tr>
         <% end %>
       </tbody>
