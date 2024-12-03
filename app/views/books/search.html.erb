@@ -1,35 +1,37 @@
-<div class="container">
-  <!-- Keyword Search Form -->
+<main>
+  <!-- Text Search -->
   <%= form_with url: search_books_path, method: :get, local: true do |f| %>
-    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-      <%= f.text_field :query, value: params[:query], placeholder: "Title, Author,...", style: "flex: 1;" %>
-      <button type="submit" class="button">🔍</button>
-    </div>
+    <%= f.text_field :query, 
+                     value: params[:query], 
+                     placeholder: "Search by title or author" %>
+    <%= f.submit "Search" %>
   <% end %>
 
-  <!-- ISBN Photo Search Form -->
+  <hr>
+
+  <!-- ISBN Photo Search -->
   <%= form_with url: search_by_isbns_books_path,
                 method: :post,
                 local: true,
                 multipart: true,
                 data: { controller: "file-upload" } do |f| %>
-    <div>
-      <%= f.file_field :photos,
-                       multiple: true,
-                       accept: 'image/*',
-                       data: {
-                         file_upload_target: "fileInput",
-                         action: "file-upload#submitForm"
-                       },
-                       style: "display: none;" %>
-      <button type="button" class="button" data-action="file-upload#promptFileSelection">📷 ISBN</button>
-    </div>
+    <%= f.file_field :photos,
+                     multiple: true,
+                     accept: 'image/*',
+                     data: {
+                       file_upload_target: "fileInput",
+                       action: "file-upload#submitForm"
+                     },
+                     style: "display: none;" %>
+    <button type="button" data-action="file-upload#promptFileSelection">
+      Scan ISBN
+    </button>
   <% end %>
 
-  <!-- Search Results -->
+  <!-- Results -->
   <% if @books.any? %>
-    <!-- Your existing code to display the search results -->
+    <!-- Existing results -->
   <% elsif params[:query].present? %>
-    <p><mark>No books found matching your search criteria</mark></p>
+    <p>No matches found</p>
   <% end %>
-</div>
+</main>
