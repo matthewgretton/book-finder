@@ -10,6 +10,6 @@ table {
     width: 100%;
 }
 
-.button {
+button, input[type="submit"] {
     font-weight: normal;
 }
