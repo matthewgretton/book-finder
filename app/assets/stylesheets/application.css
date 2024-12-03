@@ -1,10 +1,15 @@
-/* Make table text wrap on mobile */
 td, th {
     word-wrap: break-word;
     white-space: normal;
+    padding: 0.5rem;
+    line-height: 1.2;
 }
 
-/* Ensure buttons have consistent styling */
+table {
+    table-layout: fixed;
+    width: 100%;
+}
+
 .button {
-    font-weight: normal; /* Adjusted to make the text bolder */
+    font-weight: normal;
 }
