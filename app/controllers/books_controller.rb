@@ -6,7 +6,11 @@ class BooksController < ApplicationController
 
   def search
     if params[:query].present?
+      params[:detailed]="true"
+
+
       fetch_additional_info = params[:detailed] == "true"
+
       @books = search_arbookfind(params[:query], fetch_additional_info)
     else
       @books = []
@@ -96,13 +100,14 @@ class BooksController < ApplicationController
       author = book_detail.at_css("p").text.strip.split("\n").first.strip
       bl_text = book_detail.at_css("p").text.match(/BL: (\d+\.\d+)/)
       atos_book_level = bl_text ? bl_text[1].to_f : 0.0
+      interest_level_match = book_detail.at_css("p").text.match(/IL: (\w+)/)
+      interest_level = interest_level_match ? interest_level_to_age_range(interest_level_match[1]) : "Unknown"
 
       # Placeholder values for non-nullable fields
       series = "N/A"
       published = 0
       isbn = "N/A"
       ar_points = 0.0
-      interest_level = "N/A"
       word_count = 0
 
       # Fetch additional information if the flag is set
@@ -117,8 +122,6 @@ class BooksController < ApplicationController
         series = series_elements.map { |element| element.text.strip.chomp(";") }.join(", ")
         ar_points_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblPoints")
         ar_points = ar_points_element ? ar_points_element.text.strip.to_f : 0.0
-        interest_level_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblInterestLevel")
-        interest_level = interest_level_element ? interest_level_element.text.strip : "N/A"
         word_count_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblWordCount")
         word_count = word_count_element ? word_count_element.text.strip.to_i : 0
 
@@ -171,5 +174,20 @@ class BooksController < ApplicationController
       end
 
       books
+    end
+
+    def interest_level_to_age_range(interest_level)
+      case interest_level
+      when "LY"
+        "5y - 8y"
+      when "MY"
+        "9y - 13y"
+      when "MY+"
+        "12y+"
+      when "UY"
+        "14y+"
+      else
+        "Unknown"
+      end
     end
 end

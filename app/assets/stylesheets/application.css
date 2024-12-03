@@ -1,13 +1,11 @@
-td, th {
-    word-wrap: break-word;
-    white-space: normal;
-    padding: 0.5rem;
-    line-height: 1.2;
+table {
+    table-layout: auto;    /* Lets table size based on content */
 }
 
-table {
-    table-layout: fixed;
-    width: 100%;
+td, th {
+    padding: 0.2rem;
+    line-height: 1;
+    text-align: left;  
 }
 
 button, input[type="submit"] {

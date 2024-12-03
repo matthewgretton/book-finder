@@ -1,5 +1,5 @@
 <main>
-  <%= form_with url: search_books_path, method: :get, local: true do |f| %>
+  <%= form_with url: search_books_path, method: :get, local: true, data: {turbo: false } do |f| %>
     <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem;">
       <%= f.text_field :query, 
                        value: params[:query], 
@@ -15,7 +15,7 @@
                 method: :post,
                 local: true,
                 multipart: true,
-                data: { controller: "file-upload" } do |f| %>
+                data: { controller: "file-upload", turbo: false  } do |f| %>
     <%= f.file_field :photos,
                      multiple: true,
                      accept: 'image/*',
@@ -39,8 +39,8 @@
           <th>Author</th>
           <th>Level</th>
           <% if params[:detailed] == "true" %>
-            <th>AR Points</th>
-            <th>Interest Level</th>
+            <th>Interest</th>
+            <th>Points</th>
             <th>Word Count</th>
           <% end %>
         </tr>
@@ -52,8 +52,8 @@
             <td><%= book.author %></td>
             <td><%= book.atos_book_level %></td>
             <% if params[:detailed] == "true" %>
-              <td><%= book.ar_points %></td>
               <td><%= book.interest_level %></td>
+              <td><%= book.ar_points %></td>
               <td><%= number_with_delimiter(book.word_count) %></td>
             <% end %>
           </tr>
