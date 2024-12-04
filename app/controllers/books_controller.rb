@@ -7,7 +7,16 @@ class BooksController < ApplicationController
   def search
     if params[:query].present?
 
+      start_time = Time.now
+
       @books = search_arbookfind(params[:query])
+
+      end_time = Time.now
+
+      elapsed_time = end_time - start_time
+
+      puts "Elapsed time: #{elapsed_time} seconds"
+
     else
       @books = []
     end
@@ -65,8 +74,8 @@ class BooksController < ApplicationController
 
     def navigate_to_search(agent)
       # Get the search page
-      page = agent.get("https://www.arbookfind.co.uk/default.aspx")
-
+      # page = agent.get("https://www.arbookfind.co.uk/default.aspx")
+      page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
       # Check if the user type form is present
       form = page.form_with(name: "form1")
 
@@ -83,7 +92,8 @@ class BooksController < ApplicationController
     def submit_search_form(page, query)
       # Select the quick search form and submit the search query
       form = page.form_with(name: "aspnetForm")
-      form["ctl00$ContentPlaceHolder1$txtKeyWords"] = query if query.present?
+      # form["ctl00$ContentPlaceHolder1$txtKeyWords"] = query if query.present?
+      form["ctl00$ContentPlaceHolder1$txtTitle"] = query if query.present?
 
       results_page = form.submit(form.button_with(name: "ctl00$ContentPlaceHolder1$btnDoIt"))
 
