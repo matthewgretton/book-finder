@@ -1,5 +1,6 @@
 <main>
-  <%= form_with url: search_books_path, method: :get, local: true, data: {turbo: false } do |f| %>
+
+   <%= form_with url: search_books_path, method: :get, local: true, data: {turbo: false } do |f| %>
     <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem;">
       <%= f.text_field :query, 
                        value: params[:query], 
@@ -8,57 +9,57 @@
     </div>
   <% end %>
 
-  <div style="margin-bottom: 0.5rem;">
-     <!-- Results -->
-    <% if @books.any? %>
-      <!-- Your existing code to display the search results -->
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Author</th>
-            <th>Level</th>
-            <th>Interest</th>
-              <th>Points</th>
-              <th>Word Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @books.each do |book| %>
+        <!-- Results -->
+      <% if @books.any? %>
+        <!-- Your existing code to display the search results -->
+        <div class="table-wrapper" data-controller="table" data-table-target="wrapper">
+        <table data-table-target="table">
+          <thead>
             <tr>
-              <td><%= book.title %></td>
-              <td><%= book.author %></td>
-              <td><%= book.atos_book_level %></td>
-              <td><%= book.interest_level %></td>
-                <td><%= book.ar_points %></td>
-                <td><%= number_with_delimiter(book.word_count) %></td>
+              <th>Title</th>
+              <th>Author</th>
+              <th>Level</th>
+              <th>Interest</th>
+                <th>Points</th>
+                <th>Word Count</th>
             </tr>
-          <% end %>
-        </tbody>
-      </table>
-    <% elsif params[:query].present? %>
-      <p>No matches found</p>
+          </thead>
+          <tbody>
+            <% @books.each do |book| %>
+              <tr>
+                <td><%= book.title %></td>
+                <td><%= book.author %></td>
+                <td><%= book.atos_book_level %></td>
+                <td><%= book.interest_level %></td>
+                  <td><%= book.ar_points %></td>
+                  <td><%= number_with_delimiter(book.word_count) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+        </div>
+      <% elsif params[:query].present? %>
+        <p>No matches found</p>
+      <% end %>
+      
+    <!-- ISBN Photo Search -->
+    <%= form_with url: search_by_isbns_books_path,
+                  method: :post,
+                  local: true,
+                  multipart: true,
+                  data: { controller: "file-upload", turbo: false  } do |f| %>
+      <%= f.file_field :photos,
+                      multiple: true,
+                      accept: 'image/*',
+                      data: {
+                        file_upload_target: "fileInput",
+                        action: "file-upload#submitForm"
+                      },
+                      style: "display: none;" %>
+      <button type="button" data-action="file-upload#promptFileSelection">
+        Scan ISBN
+      </button>
     <% end %>
-  </div>
-
-  <!-- ISBN Photo Search -->
-  <%= form_with url: search_by_isbns_books_path,
-                method: :post,
-                local: true,
-                multipart: true,
-                data: { controller: "file-upload", turbo: false  } do |f| %>
-    <%= f.file_field :photos,
-                     multiple: true,
-                     accept: 'image/*',
-                     data: {
-                       file_upload_target: "fileInput",
-                       action: "file-upload#submitForm"
-                     },
-                     style: "display: none;" %>
-    <button type="button" data-action="file-upload#promptFileSelection">
-      Scan ISBN
-    </button>
-  <% end %>
 
 </main>
 

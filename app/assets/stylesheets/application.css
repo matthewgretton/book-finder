@@ -1,12 +1,12 @@
-table {
-    table-layout: auto;    /* Lets table size based on content */
-}
 
-td, th {
-    padding: 0.2rem;
-    line-height: 1;
-    text-align: left;  
-}
+/* Table styles */
+  th, td {
+    padding: 0.5rem;           /* Add spacing within cells */
+    text-align: left;          /* Align text to the left */
+    white-space: normal;       /* Allow wrapping at spaces */
+    overflow: hidden;          /* Prevent overflow beyond cell boundaries */
+    border: 1px solid #ddd;    /* Add borders for clarity */
+  }
 
 button, input[type="submit"] {
     font-weight: normal;
