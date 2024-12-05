@@ -8,6 +8,10 @@
     border: 1px solid #ddd;    /* Add borders for clarity */
   }
 
+  .table-wrapper {
+    margin-bottom: 1rem;
+}
+
 button, input[type="submit"] {
     font-weight: normal;
 }

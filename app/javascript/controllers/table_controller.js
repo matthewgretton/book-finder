@@ -4,15 +4,11 @@ export default class extends Controller {
   static targets = ["table", "wrapper"];
 
   connect() {
-    console.log("TableController connected!");
-    console.log("Table Target:", this.tableTarget);
-    console.log("Wrapper Target:", this.wrapperTarget);
     this.adjustScale();
     window.addEventListener("resize", this.adjustScale.bind(this));
   }
 
   disconnect() {
-    console.log("TableController disconnected!");
     window.removeEventListener("resize", this.adjustScale.bind(this));
   }
 
@@ -24,16 +20,17 @@ export default class extends Controller {
     const tableWidth = table.offsetWidth;
     const wrapperWidth = wrapper.offsetWidth;
 
-    console.log(`Table width: ${tableWidth}, Wrapper width: ${wrapperWidth}`);
-
     if (tableWidth > wrapperWidth) {
       const scale = wrapperWidth / tableWidth;
-      console.log(`Scaling table to: ${scale}`);
       table.style.transform = `scale(${scale})`;
       table.style.transformOrigin = "top left";
+      
+      // Add this line to adjust the wrapper height
+      wrapper.style.height = `${table.offsetHeight * scale}px`;
     } else {
-      console.log("No scaling needed");
       table.style.transform = "scale(1)";
+      // Reset the wrapper height when no scaling is needed
+      wrapper.style.height = "auto";
     }
   }
 }
