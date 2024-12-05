@@ -17,6 +17,9 @@ export default class extends Controller {
     const table = this.tableTarget;
     const wrapper = this.wrapperTarget;
 
+    // Ensure wrapper is full width
+    wrapper.style.width = "100%";
+    
     const tableWidth = table.offsetWidth;
     const wrapperWidth = wrapper.offsetWidth;
 
@@ -24,12 +27,11 @@ export default class extends Controller {
       const scale = wrapperWidth / tableWidth;
       table.style.transform = `scale(${scale})`;
       table.style.transformOrigin = "top left";
-      
-      // Add this line to adjust the wrapper height
       wrapper.style.height = `${table.offsetHeight * scale}px`;
     } else {
+      // When not scaling down, ensure table takes full width
       table.style.transform = "scale(1)";
-      // Reset the wrapper height when no scaling is needed
+      table.style.width = "100%";
       wrapper.style.height = "auto";
     }
   }

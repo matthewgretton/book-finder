@@ -1,6 +1,6 @@
 <main>
 
-   <%= form_with url: search_books_path, method: :get, local: true, data: {turbo: false } do |f| %>
+   <%= form_with url: search_books_path, method: :get, local: true, data: {turbo: true } do |f| %>
     <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem;">
       <%= f.text_field :query, 
                        value: params[:query], 
@@ -12,8 +12,8 @@
         <!-- Results -->
       <% if @books.any? %>
         <!-- Your existing code to display the search results -->
-        <div class="table-wrapper" data-controller="table" data-table-target="wrapper">
-        <table data-table-target="table">
+        <div class="table-wrapper" style="width: 100%;" data-controller="table" data-table-target="wrapper">
+        <table data-table-target="table" style="width: 100%;">
           <thead>
             <tr>
               <th>Title</th>
@@ -41,25 +41,24 @@
       <% elsif params[:query].present? %>
         <p>No matches found</p>
       <% end %>
+
+      <hr>
       
     <!-- ISBN Photo Search -->
-    <%= form_with url: search_by_isbns_books_path,
-                  method: :post,
-                  local: true,
-                  multipart: true,
-                  data: { controller: "file-upload", turbo: false  } do |f| %>
-      <%= f.file_field :photos,
-                      multiple: true,
-                      accept: 'image/*',
-                      data: {
-                        file_upload_target: "fileInput",
-                        action: "file-upload#submitForm"
-                      },
-                      style: "display: none;" %>
-      <button type="button" data-action="file-upload#promptFileSelection">
-        Scan ISBN
-      </button>
-    <% end %>
-
+<!-- ISBN Photo Search -->
+<%= form_with url: search_by_isbns_books_path,
+              method: :post,
+              multipart: true do |f| %>
+  <div style="display: grid; grid-template-columns: 1fr auto">
+    <%= f.file_field :photos,
+                     multiple: true,
+                     accept: 'image/*',
+                     style: "display: none;",
+                     id: "photo-input",
+                     onchange: "this.form.requestSubmit();" %>
+    <%= f.submit "Scan ISBN", 
+                 onclick: "document.getElementById('photo-input').click(); return false;" %>
+  </div>
+<% end %>
 </main>
 

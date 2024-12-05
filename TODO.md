@@ -1,12 +1,13 @@
 #TODO
 
-1) Simply the search bar which calls through to the arbookfind site, and displays in a table below.
+- Implement ISBN scan
+- PWA performance, it takes time to load when opening, do we need to do anything with the service worker?
+- Can we improve performance of the web scraping, it's pretty slow at the momement?
+- Anything we can cache in order to speed things up?
 
-2) Add colour codes to the BL levels.
 
-3) Add an image of the library with different levels/colours
 
-4) Add ability to do a search via an upoaded ISBN code
 
-5) Consider how we want to save books, e.g. a button on the table, or automactically in some cases.
 
+# Phase 2
+- Save books when looking up to create a cache almost, how woudld we merge results with those from ar etc...
