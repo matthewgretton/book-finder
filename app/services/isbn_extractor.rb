@@ -22,12 +22,8 @@ module IsbnExtractor
           ocr = RTesseract.new(rotated_image.path)
           text = ocr.to_s.strip
 
-          Rails.logger.info "OCR attempt with rotation #{rotation}°:"
-          Rails.logger.info text
-
           isbn_match = text.match(ISBN_PATTERN)
           if isbn_match
-            Rails.logger.info "Found ISBN at rotation #{rotation}°"
             return isbn_match[0]
           end
         end

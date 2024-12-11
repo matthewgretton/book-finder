@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
-  get "books/search", to: "books#search", as: "search_books"
-  post "books/search_by_isbns", to: "books#search_by_isbns", as: "search_by_isbns_books"
+  # Define custom routes for the search action
+  get "books/search", to: "books#search", as: :search_books
+  post "books/search", to: "books#search"
 
   # Uncomment this line for PWA support
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
