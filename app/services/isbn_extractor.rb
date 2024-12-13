@@ -6,25 +6,25 @@ module IsbnExtractor
 
     begin
       Tempfile.create([ "isbn_extract", ".jpg" ], binmode: true) do |temp_file|
+        # Load image once
         image = MiniMagick::Image.read(photo.tempfile)
 
-        # Basic preprocessing
+        # Minimal preprocessing - only what's essential for barcode reading
         image.auto_orient
         image.colorspace "Gray"
-        image.contrast
-        image.deskew("40%")
 
-        # Try each orientation until we find an ISBN
-        [ 0, 90, 180, 270 ].each do |rotation|
-          rotated_image = image.clone
-          rotated_image.rotate(rotation.to_s) if rotation != 0
+        # Try OCR on original orientation first (most common case)
+        if isbn = extract_isbn_from_image(image)
+          return isbn
+        end
 
-          ocr = RTesseract.new(rotated_image.path)
-          text = ocr.to_s.strip
+        # Only try other orientations if first attempt fails
+        [ 90, 180, 270 ].each do |rotation|
+          # Modify existing image instead of cloning
+          image.rotate(rotation.to_s)
 
-          isbn_match = text.match(ISBN_PATTERN)
-          if isbn_match
-            return isbn_match[0]
+          if isbn = extract_isbn_from_image(image)
+            return isbn
           end
         end
 
@@ -40,6 +40,14 @@ module IsbnExtractor
 
   private
 
+    def extract_isbn_from_image(image)
+      ocr = RTesseract.new(image.path)
+      text = ocr.to_s.strip
+
+      isbn_match = text.match(ISBN_PATTERN)
+      isbn_match[0] if isbn_match
+    end
+
     def validate_photo!(photo)
       unless photo.is_a?(ActionDispatch::Http::UploadedFile)
         raise ArgumentError, "Invalid photo provided"
@@ -50,5 +58,5 @@ module IsbnExtractor
       end
     end
 
-    module_function :extract, :validate_photo!
+    module_function :extract, :extract_isbn_from_image, :validate_photo!
 end
