@@ -16,6 +16,26 @@ class BookfindService
 
   COOKIE_FILE = Rails.root.join("tmp", "arbookfind_cookies.yml")
 
+  # Singleton instance variables for caching
+  @cached_page = nil
+  @last_cached_at = nil
+
+  CACHE_EXPIRY_TIME = 10.minutes
+
+  class << self
+    attr_accessor :cached_page, :last_cached_at
+
+    def reset_cache(agent)
+      puts "Reloading pristine page for caching..."
+      self.cached_page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
+      self.last_cached_at = Time.now
+    end
+
+    def cache_expired?
+      last_cached_at.nil? || Time.now - last_cached_at > CACHE_EXPIRY_TIME
+    end
+  end
+
   def search_by_title(title)
     search_params = { title: title }
     perform_search(search_params)
@@ -29,19 +49,19 @@ class BookfindService
   private
 
     def perform_search(search_params)
-      agent = TimeHelper.time_function("Creating Agent...") { create_agent }
+      agent = create_agent
 
-      page = TimeHelper.time_function("Navigate to search...") { navigate_to_search(agent) }
-
-      validate_session!(agent, page)
-
-      results_page = TimeHelper.time_function("Submit search form...") do
-        submit_search_form(agent, page, search_params)
+      # Reload the cache if it is expired
+      if self.class.cached_page.nil? || self.class.cache_expired?
+        self.class.reset_cache(agent)
       end
 
-      TimeHelper.time_function("Parse Results...") do
-        parse_results(agent, results_page)
-      end
+      # Use a fresh clone of the cached page to avoid persisting form state
+      pristine_page = self.class.cached_page.dup
+
+      results_page = submit_search_form(agent, pristine_page, search_params)
+
+      parse_results(agent, results_page)
     end
 
     def create_agent
@@ -62,29 +82,21 @@ class BookfindService
       form.radiobutton_with(value: "radParent").check
       form.submit(form.button_with(name: "btnSubmitUserType"))
       agent.cookie_jar.save_as(COOKIE_FILE.to_s)
-    end
 
-    def navigate_to_search(agent)
-      agent.get("https://www.arbookfind.co.uk/advanced.aspx")
-    end
-
-    def validate_session!(agent, page)
-      if needs_user_type_selection?(page)
-        puts "Session invalid. Reinitializing..."
-        setup_initial_cookies(agent)
-      end
-    end
-
-    def needs_user_type_selection?(page)
-      !!page.at_css("input[type='radio'][value='radParent']")
+      # Cache the pristine page after navigating to advanced.aspx
+      self.class.cached_page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
+      self.class.last_cached_at = Time.now
     end
 
     def submit_search_form(agent, page, search_params)
       form = page.form_with(name: "aspnetForm")
+
+      # Set the new search parameters
       search_params.each do |param, value|
         field = FORM_FIELDS[param]
         form[field] = value if field && value.present?
       end
+
       form.submit(form.button_with(name: FORM_FIELDS[:submit]))
     end
 
@@ -101,22 +113,12 @@ class BookfindService
       atos_book_level = bl_text ? bl_text[1].to_f : 0.0
       interest_level_match = book_detail.at_css("p").text.match(/IL: (\w+)/)
       interest_level = interest_level_match ? interest_level_match[1] : "Unknown"
-      series = "N/A"
-      published = 0
-      isbn = "N/A"
-      ar_points = 0.0
-      word_count = 0
 
       Book.new(
         title: title,
         author: author,
-        series: series.presence,
-        published: published,
-        isbn: isbn,
         atos_book_level: atos_book_level,
-        ar_points: ar_points,
-        interest_level: interest_level,
-        word_count: word_count
+        interest_level: interest_level
       )
     end
 end
