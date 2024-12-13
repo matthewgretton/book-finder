@@ -42,7 +42,11 @@ class BookfindService
   end
 
   def search_by_isbn(isbn)
-    result = find_book_by_isbn(isbn)
+    clean_isbn = isbn.gsub(/[-\s]/, "")
+
+    result = find_book_by_isbn(clean_isbn)
+    return [] if result.nil?
+
     title = result[:title]
     search_params = { title: title }
     perform_search(search_params)
