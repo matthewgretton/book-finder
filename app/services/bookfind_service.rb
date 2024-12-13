@@ -14,38 +14,38 @@ class BookfindService
     submit: "ctl00$ContentPlaceHolder1$btnDoIt"
   }.freeze
 
-
-
-
-
   COOKIE_FILE = Rails.root.join("tmp", "arbookfind_cookies.yml")
 
-  def search(query)
-    agent = TimeHelper.time_function("Creating Agent...") do
-      create_agent
-    end
+  def search_by_title(title)
+    search_params = { title: title }
+    perform_search(search_params)
+  end
 
-    page = TimeHelper.time_function("Navigate to search...") do
-      navigate_to_search(agent)
-    end
-
-    # Validate session after navigating to the search page
-    validate_session!(agent, page)
-
-    results_page = TimeHelper.time_function("Submit search form...") do
-      submit_search_form(agent, page, query)
-    end
-
-    TimeHelper.time_function("Parse Results...") do
-      parse_results(agent, results_page)
-    end
+  def search_by_isbn(isbn)
+    search_params = { isbn: isbn }
+    perform_search(search_params)
   end
 
   private
 
+    def perform_search(search_params)
+      agent = TimeHelper.time_function("Creating Agent...") { create_agent }
+
+      page = TimeHelper.time_function("Navigate to search...") { navigate_to_search(agent) }
+
+      validate_session!(agent, page)
+
+      results_page = TimeHelper.time_function("Submit search form...") do
+        submit_search_form(agent, page, search_params)
+      end
+
+      TimeHelper.time_function("Parse Results...") do
+        parse_results(agent, results_page)
+      end
+    end
+
     def create_agent
       agent = Mechanize.new
-
       if File.exist?(COOKIE_FILE)
         puts "Loading cookies from #{COOKIE_FILE}"
         agent.cookie_jar.load(COOKIE_FILE.to_s)
@@ -53,7 +53,6 @@ class BookfindService
         puts "Setting up initial cookies"
         setup_initial_cookies(agent)
       end
-
       agent
     end
 
@@ -70,7 +69,6 @@ class BookfindService
     end
 
     def validate_session!(agent, page)
-      # Check if the page redirects to the user type selection form or is invalid
       if needs_user_type_selection?(page)
         puts "Session invalid. Reinitializing..."
         setup_initial_cookies(agent)
@@ -78,14 +76,16 @@ class BookfindService
     end
 
     def needs_user_type_selection?(page)
-      # Check if the page indicates that user type selection is required
       !!page.at_css("input[type='radio'][value='radParent']")
     end
 
-    def submit_search_form(agent, page, query)
+    def submit_search_form(agent, page, search_params)
       form = page.form_with(name: "aspnetForm")
-      form["ctl00$ContentPlaceHolder1$txtTitle"] = query if query.present?
-      form.submit(form.button_with(name: "ctl00$ContentPlaceHolder1$btnDoIt"))
+      search_params.each do |param, value|
+        field = FORM_FIELDS[param]
+        form[field] = value if field && value.present?
+      end
+      form.submit(form.button_with(name: FORM_FIELDS[:submit]))
     end
 
     def parse_results(agent, page)
