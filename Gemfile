@@ -20,6 +20,8 @@ gem "jbuilder"
 
 gem "nokogiri"
 
+gem "httparty"
+
 gem "mechanize"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]

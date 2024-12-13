@@ -42,7 +42,9 @@ class BookfindService
   end
 
   def search_by_isbn(isbn)
-    search_params = { isbn: isbn }
+    result = find_book_by_isbn(isbn)
+    title = result[:title]
+    search_params = { title: title }
     perform_search(search_params)
   end
 
@@ -109,16 +111,46 @@ class BookfindService
     def extract_book_from_details(agent, book_detail)
       title = book_detail.at_css("a#book-title").text.strip
       author = book_detail.at_css("p").text.strip.split("\n").first.strip
-      bl_text = book_detail.at_css("p").text.match(/BL: (\d+\.\d+)/)
+
+      paragraph_text = book_detail.at_css("p").text
+
+      # Extract Book Level (BL)
+      bl_text = paragraph_text.match(/BL: (\d+\.\d+)/)
       atos_book_level = bl_text ? bl_text[1].to_f : 0.0
-      interest_level_match = book_detail.at_css("p").text.match(/IL: (\w+)/)
+
+      # Extract Interest Level (IL)
+      interest_level_match = paragraph_text.match(/IL: (\w+)/)
       interest_level = interest_level_match ? interest_level_match[1] : "Unknown"
+
+      # Extract AR Points
+      ar_points_match = paragraph_text.match(/AR Pts: (\d+\.\d+)/)
+      ar_points = ar_points_match ? ar_points_match[1].to_f : 0.0
 
       Book.new(
         title: title,
         author: author,
         atos_book_level: atos_book_level,
-        interest_level: interest_level
+        interest_level: interest_level,
+        ar_points: ar_points,
       )
+    end
+
+    def find_book_by_isbn(isbn)
+      response = HTTParty.get(
+        "https://www.googleapis.com/books/v1/volumes",
+        query: {
+          q: "isbn:#{isbn}",
+          maxResults: 1,
+          fields: "items(volumeInfo(title,authors))"
+        }
+      )
+
+      return nil if response["items"].nil? || response["items"].empty?
+
+      volume_info = response["items"].first["volumeInfo"]
+      {
+        title: volume_info["title"],
+        author: volume_info["authors"]&.first
+      }
     end
 end
