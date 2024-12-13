@@ -18,7 +18,8 @@ gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 
-gem "httparty"
+gem "faraday"
+gem "faraday-cookie_jar"
 
 gem "nokogiri"
 
