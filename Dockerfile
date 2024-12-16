@@ -21,8 +21,7 @@ RUN apt-get update -qq && \
     libjemalloc2 \
     libvips \
     sqlite3 \
-    imagemagick \
-    tesseract-ocr && \
+    libzbar0 && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment
@@ -40,10 +39,7 @@ RUN apt-get update -qq && \
     build-essential \
     git \
     pkg-config \
-    imagemagick \
-    libmagickwand-dev \
-    tesseract-ocr \
-    libtesseract-dev && \
+    libzbar-dev && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install application gems
