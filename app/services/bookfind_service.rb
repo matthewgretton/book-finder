@@ -14,28 +14,6 @@ class BookfindService
     submit: "ctl00$ContentPlaceHolder1$btnDoIt"
   }.freeze
 
-  COOKIE_FILE = Rails.root.join("tmp", "arbookfind_cookies.yml")
-
-  # Singleton instance variables for caching
-  @cached_page = nil
-  @last_cached_at = nil
-
-  CACHE_EXPIRY_TIME = 10.minutes
-
-  class << self
-    attr_accessor :cached_page, :last_cached_at
-
-    def reset_cache(agent)
-      puts "Reloading pristine page for caching..."
-      self.cached_page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
-      self.last_cached_at = Time.now
-    end
-
-    def cache_expired?
-      last_cached_at.nil? || Time.now - last_cached_at > CACHE_EXPIRY_TIME
-    end
-  end
-
   def search_by_title(title)
     search_params = { title: title }
     perform_search(search_params)
@@ -54,79 +32,53 @@ class BookfindService
 
   private
 
-    def perform_search(search_params)
-      agent = create_agent
-
-      # Reload the cache if it is expired
-      if self.class.cached_page.nil? || self.class.cache_expired?
-        self.class.reset_cache(agent)
-      end
-
-      # Use a fresh clone of the cached page to avoid persisting form state
-      pristine_page = self.class.cached_page.dup
-
-      results_page = submit_search_form(agent, pristine_page, search_params)
-
-      parse_results(agent, results_page)
-    end
-
-    def create_agent
+    def initialize
       agent = Mechanize.new
-      if File.exist?(COOKIE_FILE)
-        puts "Loading cookies from #{COOKIE_FILE}"
-        agent.cookie_jar.load(COOKIE_FILE.to_s)
-      else
-        puts "Setting up initial cookies"
-        setup_initial_cookies(agent)
-      end
-      agent
+      setup_session(agent)
     end
 
-    def setup_initial_cookies(agent)
-      page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
-      form = page.form_with(name: "form1")
-      form.radiobutton_with(value: "radParent").check
-      form.submit(form.button_with(name: "btnSubmitUserType"))
-      agent.cookie_jar.save_as(COOKIE_FILE.to_s)
+    def setup_session(agent)
+      cookie = Mechanize::Cookie.new(
+        name: "BFUserType",
+        value: "Parent",
+        domain: "www.arbookfind.co.uk",
+        path: "/",
+        secure: true
+      )
+      agent.cookie_jar.add(URI("https://www.arbookfind.co.uk"), cookie)
 
-      # Cache the pristine page after navigating to advanced.aspx
-      self.class.cached_page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
-      self.class.last_cached_at = Time.now
+      @search_page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
     end
 
-    def submit_search_form(agent, page, search_params)
-      form = page.form_with(name: "aspnetForm")
-
-      # Set the new search parameters
+    def perform_search(search_params)
+      form = @search_page.form_with(name: "aspnetForm")
       search_params.each do |param, value|
         field = FORM_FIELDS[param]
         form[field] = value if field && value.present?
       end
 
-      form.submit(form.button_with(name: FORM_FIELDS[:submit]))
+      results_page = form.submit(form.button_with(name: FORM_FIELDS[:submit]))
+      parse_results(results_page)
     end
 
-    def parse_results(agent, page)
+    def parse_results(page)
       doc = Nokogiri::HTML(page.body)
       book_details = doc.css("td.book-detail")
-      book_details.map { |detail| extract_book_from_details(agent, detail) }
+      book_details.map { |detail| extract_book_from_details(detail) }
     end
 
-    def extract_book_from_details(agent, book_detail)
+    def extract_book_from_details(book_detail)
       title = book_detail.at_css("a#book-title").text.strip
       author = book_detail.at_css("p").text.strip.split("\n").first.strip
 
       paragraph_text = book_detail.at_css("p").text
 
-      # Extract Book Level (BL)
       bl_text = paragraph_text.match(/BL: (\d+\.\d+)/)
       atos_book_level = bl_text ? bl_text[1].to_f : 0.0
 
-      # Extract Interest Level (IL)
       interest_level_match = paragraph_text.match(/IL: (\w+)/)
       interest_level = interest_level_match ? interest_level_match[1] : "Unknown"
 
-      # Extract AR Points
       ar_points_match = paragraph_text.match(/AR Pts: (\d+\.\d+)/)
       ar_points = ar_points_match ? ar_points_match[1].to_f : 0.0
 

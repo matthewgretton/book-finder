@@ -1,11 +1,17 @@
+
 class BooksController < ApplicationController
+  def initialize
+    super
+    @bookfind_service = BookfindService.new
+  end
+
   def search
     @books = []
 
     if params[:query].present?
       query = params[:query]
       @books = TimeHelper.time_function("search_arbookfind for query= #{query}") do
-        BookfindService.new.search_by_title(query)
+        @bookfind_service.search_by_title(query)
       end
     elsif params[:photos].present?
       photos = params[:photos].reject(&:blank?)
@@ -17,7 +23,7 @@ class BooksController < ApplicationController
 
       isbns.each do |isbn|
         @books.concat(TimeHelper.time_function("search_arbookfind for ISBN #{isbn}") do
-          BookfindService.new.search_by_isbn(isbn)
+          @bookfind_service.search_by_isbn(isbn)
         end)
       end
     end
