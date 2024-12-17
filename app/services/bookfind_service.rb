@@ -19,10 +19,6 @@ class BookfindService
       @instance ||= new
     end
 
-    def create_instance!
-      @instance = new
-    end
-
     private :new
 
     def search_by_title(title)
@@ -56,18 +52,31 @@ class BookfindService
   private
 
     def setup_session
+      # Rails.logger.info "Setting up AR Bookfind session"
+      # agent = Mechanize.new
+      # cookie = Mechanize::Cookie.new(
+      #   name: "BFUserType",
+      #   value: "Parent",
+      #   domain: "www.arbookfind.co.uk",
+      #   path: "/",
+      #   secure: true
+      # )
+      # agent.cookie_jar.add(URI("https://www.arbookfind.co.uk"), cookie)
+
+      # @search_page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
+      #
+
       Rails.logger.info "Setting up AR Bookfind session"
       agent = Mechanize.new
-      cookie = Mechanize::Cookie.new(
-        name: "BFUserType",
-        value: "Parent",
-        domain: "www.arbookfind.co.uk",
-        path: "/",
-        secure: true
-      )
-      agent.cookie_jar.add(URI("https://www.arbookfind.co.uk"), cookie)
 
-      @search_page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
+      page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
+
+      if form = page.form_with(name: "form1")
+        form.radiobutton_with(value: "radParent").check
+        page = form.submit(form.button_with(name: "btnSubmitUserType"))
+      end
+
+      @search_page = page
     end
 
     def perform_search(search_params)

@@ -72,7 +72,7 @@ Rails.application.configure do
 
   # config.hosts << "82cf-88-97-28-244.ngrok-free.app"
 
-  # # config/environments/development.rb
+  # # # # config/environments/development.rb
   # config.cache_classes = true
   # config.eager_load = true
 end
