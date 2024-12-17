@@ -21,7 +21,8 @@ RUN apt-get update -qq && \
     libjemalloc2 \
     libvips \
     sqlite3 \
-    libzbar0 && \
+    pkg-config && \
+    ln -s /usr/lib/*/libzbar.so /usr/lib/ && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment

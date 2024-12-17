@@ -14,6 +14,30 @@ class BookfindService
     submit: "ctl00$ContentPlaceHolder1$btnDoIt"
   }.freeze
 
+  class << self
+    def instance
+      @instance ||= new
+    end
+
+    def create_instance!
+      @instance = new
+    end
+
+    private :new
+
+    def search_by_title(title)
+      instance.search_by_title(title)
+    end
+
+    def search_by_isbn(isbn)
+      instance.search_by_isbn(isbn)
+    end
+  end
+
+  def initialize
+    setup_session
+  end
+
   def search_by_title(title)
     search_params = { title: title }
     perform_search(search_params)
@@ -21,7 +45,6 @@ class BookfindService
 
   def search_by_isbn(isbn)
     clean_isbn = isbn.gsub(/[-\s]/, "")
-
     result = find_book_by_isbn(clean_isbn)
     return [] if result.nil?
 
@@ -32,12 +55,9 @@ class BookfindService
 
   private
 
-    def initialize
+    def setup_session
+      Rails.logger.info "Setting up AR Bookfind session"
       agent = Mechanize.new
-      setup_session(agent)
-    end
-
-    def setup_session(agent)
       cookie = Mechanize::Cookie.new(
         name: "BFUserType",
         value: "Parent",
