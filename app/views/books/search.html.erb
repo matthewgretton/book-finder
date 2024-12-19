@@ -46,7 +46,7 @@
         </tbody>
       </table>
     </div>
-  <% elsif params[:query].present? %>
+  <% elsif params[:query].present? || params[:photos].present? %>
     <p>No matches found</p>
   <% end %>
   

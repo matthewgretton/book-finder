@@ -12,12 +12,11 @@ class BooksController < ApplicationController
     elsif params[:photos].present?
       photos = params[:photos].reject(&:blank?)
 
-      puts photos
       isbns = photos.map do |photo|
         TimeHelper.time_function("scan_isbn for photo") do
           IsbnExtractor.extract(photo)
         end
-      end.uniq
+      end.compact.uniq
 
       isbns.each do |isbn|
         @books.concat(TimeHelper.time_function("search_arbookfind for ISBN #{isbn}") do

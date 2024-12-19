@@ -1,4 +1,5 @@
-require "zbar"
+require "securerandom"
+require "tempfile"
 
 module IsbnExtractor
   class << self
@@ -11,57 +12,24 @@ module IsbnExtractor
           Rails.logger.info "Processing JPEG file: #{photo.tempfile.path}"
           puts "Processing JPEG file: #{photo.tempfile.path}"
 
-          # Read the file content to ensure it's a valid JPEG
-          file_content = File.binread(photo.tempfile.path).force_encoding("ASCII-8BIT")
-          Rails.logger.info "File content starts with: #{file_content[0..10].bytes.map { |b| b.to_s(16) }.join(' ')}"
+          # Create a temporary file
+          Tempfile.create([ "isbn_extractor", ".jpg" ]) do |tempfile|
+            tempfile.binmode
+            tempfile.write(photo.tempfile.read)
+            tempfile.flush
 
-          if file_content.start_with?("\xFF\xD8".force_encoding("ASCII-8BIT"))
-            begin
-              image_data = photo.tempfile.read
+            Rails.logger.info "Saved temporary file to: #{tempfile.path}"
+            puts "Saved temporary file to: #{tempfile.path}"
 
+            # Decode the barcode using the zbarimg command
+            isbn = decode_barcode(tempfile.path)
 
-              image = ZBar::Image.from_jpeg(image_data)
-              results = image.process
-
-
-
-              temp_file_path = "/tmp/#{SecureRandom.uuid}.jpg"
-              File.open(temp_file_path, "wb") do |file|
-                file.write(photo.tempfile.read)
-              end
-
-              Rails.logger.info "Saved temporary file to: #{temp_file_path}"
-              puts "Saved temporary file to: #{temp_file_path}"
-
-
-
-              Rails.logger.info "Scan results: #{results.inspect}"
-
-              puts results
-              Rails.logger.info "Scan results: #{results.inspect}"
-
-              # Check for ISBN-13 (EAN-13 starting with 978 or 979)
-              isbn = results.find { |symbol|
-                symbol.type == ZBar::Symbol::EAN13 && symbol.data.start_with?("978", "979")
-              }
-              return isbn.data if isbn
-
-              # Check for ISBN-10 (CODE-39 or CODE-128)
-              isbn = results.find { |symbol|
-                [ "CODE-39", "CODE-128" ].include?(symbol.type.to_s) && symbol.data.length == 10
-              }
-              return isbn.data if isbn
-
-              Rails.logger.info "No ISBN barcode found"
-              nil
-            rescue StandardError => e
-              Rails.logger.error "Error in ZBar processing: #{e.message}"
-              Rails.logger.error e.backtrace.join("\n")
-              nil
+            if isbn && valid_isbn?(isbn)
+              return isbn
+            else
+              Rails.logger.info "No valid ISBN barcode found"
+              return nil
             end
-          else
-            Rails.logger.error "File content is not a valid JPEG. Actual content: #{file_content[0..10].inspect}"
-            nil
           end
         else
           Rails.logger.error "File is not a valid JPEG or is empty. Actual content type: #{photo.content_type}"
@@ -84,6 +52,47 @@ module IsbnExtractor
         unless photo.content_type.start_with?("image/")
           raise ArgumentError, "File must be an image"
         end
+      end
+
+      def decode_barcode(image_path)
+        output = `zbarimg --quiet --raw #{image_path}`
+        if $?.success?
+          output.strip
+        else
+          Rails.logger.error("Error decoding barcode: #{output}")
+          nil
+        end
+      end
+
+      def valid_isbn?(isbn)
+        case isbn.length
+        when 10
+          valid_isbn10?(isbn)
+        when 13
+          valid_isbn13?(isbn)
+        else
+          false
+        end
+      end
+
+      def valid_isbn10?(isbn)
+        sum = 0
+        isbn.chars.each_with_index do |char, index|
+          return false unless char =~ /\d|X/
+          value = (char == "X" ? 10 : char.to_i)
+          sum += value * (10 - index)
+        end
+        sum % 11 == 0
+      end
+
+      def valid_isbn13?(isbn)
+        sum = 0
+        isbn.chars.each_with_index do |char, index|
+          return false unless char =~ /\d/
+          value = char.to_i
+          sum += value * (index.even? ? 1 : 3)
+        end
+        sum % 10 == 0
       end
   end
 end
