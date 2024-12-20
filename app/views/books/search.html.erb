@@ -53,10 +53,19 @@
   <hr>
 
   <!-- ISBN Photo Search -->
-  <%= form_with url: search_books_path, method: :post, multipart: true, data: { turbo: false } do |f| %>
-    <div style="display: grid; grid-template-columns: 1fr auto">
-      <%= f.file_field :photos, multiple: true, accept: 'image/*', style: "display: none;", id: "photo-input", onchange: "this.form.requestSubmit();" %>
-      <%= f.submit "Scan ISBN", onclick: "document.getElementById('photo-input').click(); return false;" %>
-    </div>
-  <% end %>
+ <%= form_with url: search_books_path, method: :post, multipart: true, data: { controller: "photo-upload", turbo: false } do |f| %>
+  <div style="display: grid; grid-template-columns: 1fr auto">
+    <%= f.file_field :photos, 
+        multiple: true, 
+        accept: 'image/*', 
+        style: "display: none;", 
+        data: { 
+          photo_upload_target: "fileInput",
+          action: "change->photo-upload#handleFileChange"
+        } %>
+    <%= f.submit "Scan ISBN", 
+        data: { action: "click->photo-upload#promptFileSelection" },
+        onclick: "return false;" %>
+  </div>
+<% end %>
 </main>
