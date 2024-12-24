@@ -1,6 +1,3 @@
-require "securerandom"
-require "tempfile"
-
 module IsbnExtractor
   class << self
     def extract(photo)
@@ -10,7 +7,6 @@ module IsbnExtractor
         # Ensure the file is a JPEG before processing
         if photo.content_type == "image/jpeg" && !photo.tempfile.nil? && !photo.tempfile.size.zero?
           Rails.logger.info "Processing JPEG file: #{photo.tempfile.path}"
-          puts "Processing JPEG file: #{photo.tempfile.path}"
 
           # Create a temporary file
           Tempfile.create([ "isbn_extractor", ".jpg" ]) do |tempfile|
@@ -19,7 +15,6 @@ module IsbnExtractor
             tempfile.flush
 
             Rails.logger.info "Saved temporary file to: #{tempfile.path}"
-            puts "Saved temporary file to: #{tempfile.path}"
 
             # Decode the barcode using the zbarimg command
             isbn = decode_barcode(tempfile.path)
@@ -27,7 +22,7 @@ module IsbnExtractor
             if isbn && valid_isbn?(isbn)
               return isbn
             else
-              Rails.logger.info "No valid ISBN barcode found"
+              Rails.logger.info "#{isbn} is not a valid ISBN"
               return nil
             end
           end

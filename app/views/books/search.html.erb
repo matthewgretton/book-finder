@@ -53,10 +53,10 @@
   <hr>
 
   <!-- ISBN Photo Search -->
- <%= form_with url: search_books_path, method: :post, multipart: true, data: { controller: "photo-upload", turbo: false } do |f| %>
+<%= form_with url: search_books_path, method: :post, multipart: true, data: { controller: "photo-upload", turbo: false } do |f| %>
   <div style="display: grid; grid-template-columns: 1fr auto">
     <%= f.file_field :photos, 
-        multiple: true, 
+        multiple: true,
         accept: 'image/*', 
         style: "display: none;", 
         data: { 

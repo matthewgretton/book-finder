@@ -10,18 +10,20 @@ class BooksController < ApplicationController
         bookFinder.search_by_title(query)
       end
     elsif params[:photos].present?
-      photos = params[:photos].reject(&:blank?)
+      TimeHelper.time_function("parse barcode and look up isbn") do
+        photos = params[:photos].reject(&:blank?)
 
-      isbns = photos.map do |photo|
-        TimeHelper.time_function("scan_isbn for photo") do
-          IsbnExtractor.extract(photo)
+        isbns = photos.map do |photo|
+          TimeHelper.time_function("scan_isbn for photo") do
+            IsbnExtractor.extract(photo)
+          end
+        end.compact.uniq
+
+        isbns.each do |isbn|
+          @books.concat(TimeHelper.time_function("search_arbookfind for ISBN #{isbn}") do
+            bookFinder.search_by_isbn(isbn)
+          end)
         end
-      end.compact.uniq
-
-      isbns.each do |isbn|
-        @books.concat(TimeHelper.time_function("search_arbookfind for ISBN #{isbn}") do
-          bookFinder.search_by_isbn(isbn)
-        end)
       end
     end
 

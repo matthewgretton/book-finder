@@ -10,7 +10,6 @@ export default class extends Controller {
 
   handleFileChange() {
     if (this.fileInputTarget.files.length > 0) {
-      // Immediately submit the form when files are selected
       this.element.requestSubmit()
     }
   }
