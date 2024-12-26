@@ -15,6 +15,7 @@ RUN apt-get update -qq && \
     libjpeg-dev \
     libtiff-dev \
     ghostscript \
+    zbar-tools \
     && ln -s /usr/lib/*/libzbar.so /usr/lib/ \
     && rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
