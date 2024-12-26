@@ -22,8 +22,7 @@ module IsbnExtractor
         "-auto-orient",
         Shellwords.escape(oriented_path)
       ].join(" ")
-      Rails.logger.info "Auto-orient command: #{auto_orient_cmd}"
-      system(auto_orient_cmd)
+      execute_command(auto_orient_cmd, "Auto-orient")
 
       unless File.exist?(oriented_path)
         Rails.logger.error "Auto-orient failed. No file at: #{oriented_path}"
@@ -41,8 +40,7 @@ module IsbnExtractor
         "-contrast",
         Shellwords.escape(contrast_path)
       ].join(" ")
-      Rails.logger.info "Contrast command: #{contrast_cmd}"
-      system(contrast_cmd)
+      execute_command(contrast_cmd, "Contrast")
 
       unless File.exist?(contrast_path)
         Rails.logger.error "Contrast step failed. No file at: #{contrast_path}"
@@ -58,8 +56,7 @@ module IsbnExtractor
         "--raw",
         Shellwords.escape(contrast_path)
       ].join(" ")
-      Rails.logger.info "ZBar command: #{zbar_cmd}"
-      output = `#{zbar_cmd}`
+      output = execute_command(zbar_cmd, "ZBar", capture_output: true)
       Rails.logger.info "zbarimg output: #{output.inspect}"
 
       isbn = output.match(/(\d{13}|\d{9}[\dX])/)[1] rescue nil
@@ -71,10 +68,24 @@ module IsbnExtractor
       isbn
     rescue StandardError => e
       Rails.logger.error "Error in ISBN extraction: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
       nil
     end
 
     private
+
+      def execute_command(command, step_name, capture_output: false)
+        Rails.logger.info "#{step_name} command: #{command}"
+        output = capture_output ? `#{command}` : system(command)
+        exit_status = $?.exitstatus
+        if exit_status != 0
+          Rails.logger.error "#{step_name} failed with exit status: #{exit_status}"
+          Rails.logger.error "Command output: #{output}" if capture_output
+        else
+          Rails.logger.info "#{step_name} succeeded."
+        end
+        output
+      end
 
       def validate_photo!(photo)
         raise ArgumentError, "Invalid photo provided" unless photo.is_a?(ActionDispatch::Http::UploadedFile)
