@@ -21,7 +21,8 @@ RUN apt-get update -qq && \
     libjemalloc2 \
     libvips \
     sqlite3 \
-    pkg-config && \
+    pkg-config \
+    imagemagick && \
     ln -s /usr/lib/*/libzbar.so /usr/lib/ && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
@@ -57,9 +58,6 @@ RUN bundle exec bootsnap precompile app/ lib/
 
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
-
-
-
 
 # Final stage for app image
 FROM base

@@ -1,72 +1,98 @@
+require "shellwords"
+
 module IsbnExtractor
   class << self
     def extract(photo)
       validate_photo!(photo)
+      return nil if photo.tempfile.nil? || photo.tempfile.size.zero?
 
-      begin
-        # Ensure the file is a JPEG before processing
-        if photo.content_type == "image/jpeg" && !photo.tempfile.nil? && !photo.tempfile.size.zero?
-          Rails.logger.info "Processing JPEG file: #{photo.tempfile.path}"
+      Rails.logger.info "Processing file: #{photo.tempfile.path}, size=#{photo.tempfile.size}"
 
-          # Create a temporary file
-          Tempfile.create([ "isbn_extractor", ".jpg" ]) do |tempfile|
-            tempfile.binmode
-            tempfile.write(photo.tempfile.read)
-            tempfile.flush
+      # 1. Write the incoming photo to a temp file
+      original_tmp = Tempfile.new([ "isbn_extractor", ".jpg" ])
+      original_tmp.binmode
+      original_tmp.write(photo.tempfile.read)
+      original_tmp.close
 
-            Rails.logger.info "Saved temporary file to: #{tempfile.path}"
+      # 2. Auto-orient -> oriented.jpg
+      oriented_path = "#{original_tmp.path}_oriented.jpg"
+      auto_orient_cmd = [
+        "convert",
+        Shellwords.escape(original_tmp.path),
+        "-auto-orient",
+        Shellwords.escape(oriented_path)
+      ].join(" ")
+      Rails.logger.info "Auto-orient command: #{auto_orient_cmd}"
+      system(auto_orient_cmd)
 
-            # Decode the barcode using the zbarimg command
-            isbn = decode_barcode(tempfile.path)
-
-            if isbn && valid_isbn?(isbn)
-              return isbn
-            else
-              Rails.logger.info "#{isbn} is not a valid ISBN"
-              return nil
-            end
-          end
-        else
-          Rails.logger.error "File is not a valid JPEG or is empty. Actual content type: #{photo.content_type}"
-          nil
-        end
-      rescue StandardError => e
-        Rails.logger.error "Error in ISBN extraction: #{e.message}"
-        Rails.logger.error e.backtrace.join("\n")
-        nil
+      unless File.exist?(oriented_path)
+        Rails.logger.error "Auto-orient failed. No file at: #{oriented_path}"
+        cleanup_files(original_tmp.path, oriented_path)
+        return nil
       end
+
+      # 3. Contrast step -> oriented_contrast.jpg
+      contrast_path = "#{oriented_path}_contrast.jpg"
+      contrast_cmd = [
+        "convert",
+        Shellwords.escape(oriented_path),
+        "-contrast",
+        "-contrast",
+        "-contrast",
+        Shellwords.escape(contrast_path)
+      ].join(" ")
+      Rails.logger.info "Contrast command: #{contrast_cmd}"
+      system(contrast_cmd)
+
+      unless File.exist?(contrast_path)
+        Rails.logger.error "Contrast step failed. No file at: #{contrast_path}"
+        cleanup_files(original_tmp.path, oriented_path, contrast_path)
+        return nil
+      end
+
+      # 4. zbarimg on the contrasted image
+      zbar_cmd = [
+        "zbarimg",
+        "-Sisbn13.enable",
+        "-Sisbn10.enable",
+        "--raw",
+        Shellwords.escape(contrast_path)
+      ].join(" ")
+      Rails.logger.info "ZBar command: #{zbar_cmd}"
+      output = `#{zbar_cmd}`
+      Rails.logger.info "zbarimg output: #{output.inspect}"
+
+      isbn = output.match(/(\d{13}|\d{9}[\dX])/)[1] rescue nil
+      isbn = isbn if isbn && valid_isbn?(isbn)
+
+      # 5. Clean up
+      cleanup_files(original_tmp.path, oriented_path, contrast_path)
+
+      isbn
+    rescue StandardError => e
+      Rails.logger.error "Error in ISBN extraction: #{e.message}"
+      nil
     end
 
     private
 
       def validate_photo!(photo)
-        unless photo.is_a?(ActionDispatch::Http::UploadedFile)
-          raise ArgumentError, "Invalid photo provided"
-        end
-
-        unless photo.content_type.start_with?("image/")
-          raise ArgumentError, "File must be an image"
-        end
+        raise ArgumentError, "Invalid photo provided" unless photo.is_a?(ActionDispatch::Http::UploadedFile)
+        raise ArgumentError, "File must be an image" unless photo.content_type.start_with?("image/")
       end
 
-      def decode_barcode(image_path)
-        output = `zbarimg --quiet --raw #{image_path}`
-        if $?.success?
-          output.strip
-        else
-          Rails.logger.error("Error decoding barcode: #{output}")
-          nil
+      def cleanup_files(*paths)
+        paths.each do |path|
+          next unless path && File.exist?(path)
+          File.delete(path)
         end
       end
 
       def valid_isbn?(isbn)
         case isbn.length
-        when 10
-          valid_isbn10?(isbn)
-        when 13
-          valid_isbn13?(isbn)
-        else
-          false
+        when 10 then valid_isbn10?(isbn)
+        when 13 then valid_isbn13?(isbn)
+        else false
         end
       end
 

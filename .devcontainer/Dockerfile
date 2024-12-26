@@ -10,6 +10,7 @@ RUN apt-get update -qq && \
     libzbar0 \
     libzbar-dev \
     pkg-config \
+    imagemagick \
     && ln -s /usr/lib/*/libzbar.so /usr/lib/ \
     && rm -rf /var/lib/apt/lists/*
 USER vscode
