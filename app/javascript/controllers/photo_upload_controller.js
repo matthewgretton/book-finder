@@ -11,6 +11,7 @@ export default class extends Controller {
   handleFileChange() {
     if (this.fileInputTarget.files.length > 0) {
       this.submitButtonTarget.value = "Scanning..."
+      this.submitButtonTarget.disabled = true
       this.element.requestSubmit()
     }
   }

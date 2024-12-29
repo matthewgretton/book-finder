@@ -1,11 +1,11 @@
 <main>
 
-  <%= form_with url: search_books_path, method: :get, local: true, data: { turbo: false } do |f| %>
-    <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem;">
-      <%= f.text_field :query, value: params[:query], placeholder: "Search by Title" %>
-      <%= f.submit "Search" %>
-    </div>
-  <% end %>
+<%= form_with url: search_books_path, method: :get, local: true, data: { turbo: false } do |f| %>
+  <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem;">
+    <%= f.text_field :query, value: params[:query], placeholder: "Search by Title" %>
+    <%= f.submit "Search", onclick: "this.value='Searching...'; this.disabled=true; this.form.submit();" %>
+  </div>
+<% end %>
 
   <!-- Results -->
   <% if @books.any? %>
