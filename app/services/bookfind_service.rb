@@ -79,14 +79,22 @@ class BookfindService
     end
 
     def perform_search(search_params)
-      form = @search_page.form_with(name: "aspnetForm")
-      search_params.each do |param, value|
-        field = FORM_FIELDS[param]
-        form[field] = value if field && value.present?
-      end
+      begin
+        form = @search_page.form_with(name: "aspnetForm")
+        search_params.each do |param, value|
+          field = FORM_FIELDS[param]
+          form[field] = value if field && value.present?
+        end
 
-      results_page = form.submit(form.button_with(name: FORM_FIELDS[:submit]))
-      parse_results(results_page)
+        results_page = form.submit(form.button_with(name: FORM_FIELDS[:submit]))
+        parse_results(results_page)
+      rescue OpenSSL::SSL::SSLError
+        Rails.logger.info "SSL Error reloading agent..."
+        @agent = nil
+        @search_page = nil
+        setup_session
+        retry
+      end
     end
 
     def parse_results(page)
