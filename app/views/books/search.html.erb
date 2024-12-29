@@ -63,8 +63,11 @@
           photo_upload_target: "fileInput",
           action: "change->photo-upload#handleFileChange"
         } %>
-    <%= f.submit "Scan ISBN", 
-        data: { action: "click->photo-upload#promptFileSelection" },
+    <%= f.submit "Scan Barcode", 
+        data: { 
+          photo_upload_target: "submitButton",
+          action: "click->photo-upload#promptFileSelection"
+        },
         onclick: "return false;" %>
   </div>
 <% end %>

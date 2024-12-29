@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["fileInput"]
+  static targets = ["fileInput", "submitButton"]
 
   promptFileSelection(event) {
     event.preventDefault()
@@ -10,6 +10,7 @@ export default class extends Controller {
 
   handleFileChange() {
     if (this.fileInputTarget.files.length > 0) {
+      this.submitButtonTarget.value = "Processing Image..."
       this.element.requestSubmit()
     }
   }
