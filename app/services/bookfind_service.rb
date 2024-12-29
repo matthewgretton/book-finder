@@ -51,20 +51,6 @@ class BookfindService
   private
 
     def setup_session
-      # Rails.logger.info "Setting up AR Bookfind session"
-      # agent = Mechanize.new
-      # cookie = Mechanize::Cookie.new(
-      #   name: "BFUserType",
-      #   value: "Parent",
-      #   domain: "www.arbookfind.co.uk",
-      #   path: "/",
-      #   secure: true
-      # )
-      # agent.cookie_jar.add(URI("https://www.arbookfind.co.uk"), cookie)
-
-      # @search_page = agent.get("https://www.arbookfind.co.uk/advanced.aspx")
-      #
-
       Rails.logger.info "Setting up AR Bookfind session"
       agent = Mechanize.new
 
@@ -76,6 +62,7 @@ class BookfindService
       end
 
       @search_page = page
+      @agent = agent
     end
 
     def perform_search(search_params)
@@ -107,6 +94,20 @@ class BookfindService
       title = book_detail.at_css("a#book-title").text.strip
       author = book_detail.at_css("p").text.strip.split("\n").first.strip
 
+      # Get the detail page link and fetch additional information
+      detail_link = book_detail.at_css("a#book-title")["href"]
+      detail_page_url = "https://www.arbookfind.co.uk/#{detail_link}"
+      detail_page = @agent.get(detail_page_url)
+      detail_doc = Nokogiri::HTML(detail_page.body)
+
+      # Extract Series
+      series_elements = detail_doc.css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblSeriesLabel")
+      series = series_elements.map { |element| element.text.strip.chomp(";") }.join(", ")
+
+      # Extract Word Count
+      word_count_element = detail_doc.at_css("span#ctl00_ContentPlaceHolder1_ucBookDetail_lblWordCount")
+      word_count = word_count_element ? word_count_element.text.strip.to_i : 0
+
       paragraph_text = book_detail.at_css("p").text
 
       bl_text = paragraph_text.match(/BL: (\d+\.\d+)/)
@@ -121,9 +122,11 @@ class BookfindService
       Book.new(
         title: title,
         author: author,
+        series: series,
         atos_book_level: atos_book_level,
         interest_level: interest_level,
         ar_points: ar_points,
+        word_count: word_count
       )
     end
 

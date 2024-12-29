@@ -15,9 +15,11 @@
           <tr>
             <th>Title</th>
             <th>Author</th>
+            <th>Series</th>
             <th>Interest</th>
             <th>Level</th>
             <th>Points</th>
+            <th>Word Count</th>
           </tr>
         </thead>
         <tbody>
@@ -25,6 +27,7 @@
             <tr>
               <td><%= book.title %></td>
               <td><%= book.author %></td>
+               <td><%= book.series %></td>
               <td data-tooltip="<%= case book.interest_level
                 # UK codes
                 when 'LY' then 'Lower Years: Ages 5-8'
@@ -41,6 +44,7 @@
               <%= book.interest_level %>
               <td><%= book.atos_book_level %></td>
               <td><%= book.ar_points %></td>
+              <td><%= book.word_count %></td>
             </tr>
           <% end %>
         </tbody>
