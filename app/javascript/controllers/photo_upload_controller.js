@@ -10,7 +10,7 @@ export default class extends Controller {
 
   handleFileChange() {
     if (this.fileInputTarget.files.length > 0) {
-      this.submitButtonTarget.value = "Processing Image..."
+      this.submitButtonTarget.value = "Scanning..."
       this.element.requestSubmit()
     }
   }
