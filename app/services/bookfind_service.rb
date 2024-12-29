@@ -88,7 +88,7 @@ class BookfindService
 
         results_page = form.submit(form.button_with(name: FORM_FIELDS[:submit]))
         parse_results(results_page)
-      rescue OpenSSL::SSL::SSLError
+      rescue OpenSSL::SSL::SSLError, Mechanize::Error, Net::HTTP::Persistent::Error
         Rails.logger.info "SSL Error reloading agent..."
         @agent = nil
         @search_page = nil
