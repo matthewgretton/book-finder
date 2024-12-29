@@ -15,9 +15,9 @@
           <tr>
             <th>Title</th>
             <th>Author</th>
+            <th>Interest</th>
             <th>Level</th>
             <th>Points</th>
-            <th>Interest</th>
           </tr>
         </thead>
         <tbody>
@@ -25,9 +25,7 @@
             <tr>
               <td><%= book.title %></td>
               <td><%= book.author %></td>
-              <td><%= book.atos_book_level %></td>
-              <td><%= book.ar_points %></td>
-                <td data-tooltip="<%= case book.interest_level
+              <td data-tooltip="<%= case book.interest_level
                 # UK codes
                 when 'LY' then 'Lower Years: Ages 5-8'
                 when 'MY' then 'Middle Years: Ages 9-11'
@@ -40,7 +38,9 @@
                 when 'UG' then 'Upper Grades: Ages 14+'
                 else 'Unknown Interest Level'
                 end %>">
-                <%= book.interest_level %>
+              <%= book.interest_level %>
+              <td><%= book.atos_book_level %></td>
+              <td><%= book.ar_points %></td>
             </tr>
           <% end %>
         </tbody>
