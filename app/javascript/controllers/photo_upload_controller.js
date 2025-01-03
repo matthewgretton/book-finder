@@ -11,7 +11,13 @@ export default class extends Controller {
     this.submitButtonTarget.value = "Scanning..."
     this.submitButtonTarget.disabled = true
 
-    const reader = new BrowserMultiFormatReader()
+    const hints = new Map();
+
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13, BarcodeFormat.ISBN, BarcodeFormat.EAN_10]);
+
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    
+    const reader = new BrowserMultiFormatReader(hints)
     const isbns = []
 
     for (const file of this.fileInputTarget.files) {
