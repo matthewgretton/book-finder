@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { BrowserMultiFormatReader } from "@zxing/browser"
+import { DecodeHintType, BarcodeFormat } from "@zxing/library"
 
 export default class extends Controller {
   static targets = ["fileInput", "submitButton"]
