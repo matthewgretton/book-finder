@@ -16,8 +16,10 @@ export default class extends Controller {
       
       for (const file of this.fileInputTarget.files) {
         try {
+          // Try multiple patch sizes until one yields a result
           const result = await this.scanBarcode(file)
           if (result) {
+            // Clean up the result to extract the ISBN digits
             const isbn = result.replace(/[^0-9]/g, '')
             if (this.isValidISBN(isbn)) {
               console.log(`Successfully decoded ${file.name}:`, { text: isbn })
@@ -49,20 +51,40 @@ export default class extends Controller {
     this.submitButtonTarget.disabled = false
   }
 
-  scanBarcode(file) {
+  // 1. The main function that tries multiple patch sizes in sequence
+  async scanBarcode(file) {
+    const patchSizes = ["medium", "small", "large"]
+    const imageUrl = URL.createObjectURL(file)
+
+    try {
+      for (const patchSize of patchSizes) {
+        const code = await this.decodeWithPatchSize(imageUrl, patchSize)
+        if (code) {
+          return code  // Return immediately if successful
+        }
+      }
+      return null
+    } finally {
+      // Always revoke the Object URL
+      URL.revokeObjectURL(imageUrl)
+    }
+  }
+
+  // 2. A helper function that attempts to decode with a single patchSize
+  decodeWithPatchSize(imageUrl, patchSize) {
     return new Promise((resolve, reject) => {
-      const imageUrl = URL.createObjectURL(file)
-      
       Quagga.decodeSingle({
-        decoder: {
-          readers: ["ean_reader", "ean_8_reader"],
-          tryHarder: true
-        },
+        src: imageUrl,
         locate: true,
-        src: imageUrl
+        numOfWorkers: 0,
+        locator: {
+          patchSize: patchSize
+        },
+        decoder: {
+          readers: ["ean_reader"],
+          tryHarder: true
+        }
       }, (result) => {
-        URL.revokeObjectURL(imageUrl)
-        
         if (result && result.codeResult) {
           resolve(result.codeResult.code)
         } else {
