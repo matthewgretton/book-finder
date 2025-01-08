@@ -1,6 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { BrowserMultiFormatReader } from "@zxing/browser"
-import { DecodeHintType, BarcodeFormat } from "@zxing/library"
+import Quagga from 'quagga'
 
 export default class extends Controller {
   static targets = ["fileInput", "submitButton"]
@@ -13,110 +12,68 @@ export default class extends Controller {
       this.submitButtonTarget.value = "Scanning..."
       this.submitButtonTarget.disabled = true
 
-      let isbns = await this.scanBarcodes(false)
+      const isbns = new Set()
       
-      if (!isbns.length) {
-        this.submitButtonTarget.value = "Trying enhanced scan..."
-        await new Promise(resolve => setTimeout(resolve, 100))
-        isbns = await this.scanBarcodes(true)
-      }
-
-      if (isbns.length) {
-        window.location.href = `${this.urlValue}?isbns=${isbns.join(',')}`
-      } else {
-        this.submitButtonTarget.value = "Scan Barcode(s)"
-        this.submitButtonTarget.disabled = false
-        alert("No valid barcodes found - please try again with a clearer photo")
-      }
-    } catch (error) {
-      this.submitButtonTarget.value = "Scan Barcode(s)"
-      this.submitButtonTarget.disabled = false
-      alert("An error occurred while scanning - please try again")
-    }
-  }
-
-  async scanBarcodes(tryHarder) {
-    const hints = new Map()
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-      BarcodeFormat.EAN_13,
-      BarcodeFormat.ISBN,
-      BarcodeFormat.EAN_10
-    ])
-
-    if (tryHarder) {
-      hints.set(DecodeHintType.TRY_HARDER, true)
-    }
-    
-    const reader = new BrowserMultiFormatReader(hints)
-    const isbns = []
-
-    for (const file of this.fileInputTarget.files) {
-      try {
-        const processedImage = await this.processImage(file)
-        const imageUrl = URL.createObjectURL(processedImage)
+      for (const file of this.fileInputTarget.files) {
         try {
-          const result = await reader.decodeFromImageUrl(imageUrl)
-          if (result?.text) {
-            isbns.push(result.text)
+          const result = await this.scanBarcode(file)
+          if (result) {
+            const isbn = result.replace(/[^0-9]/g, '')
+            if (this.isValidISBN(isbn)) {
+              console.log(`Successfully decoded ${file.name}:`, { text: isbn })
+              isbns.add(isbn)
+            }
           }
-        } finally {
-          URL.revokeObjectURL(imageUrl)
+        } catch (error) {
+          console.log(`Failed to process ${file.name}:`, error.message)
         }
-      } catch (error) {
-        // Silent fail for individual files
       }
-    }
 
-    return isbns
+      const isbnArray = Array.from(isbns)
+      if (isbnArray.length) {
+        window.location.href = `${this.urlValue}?isbns=${isbnArray.join(',')}`
+      } else {
+        this.resetButton()
+        alert("No barcodes found - please try again with a clearer photo")
+      }
+      
+    } catch (error) {
+      console.error('Error:', error)
+      this.resetButton()
+      alert("An error occurred - please try again")
+    }
   }
 
-  async processImage(file) {
+  resetButton() {
+    this.submitButtonTarget.value = "Scan Barcode(s)"
+    this.submitButtonTarget.disabled = false
+  }
+
+  scanBarcode(file) {
     return new Promise((resolve, reject) => {
-      const img = new Image()
-      let objectUrl = null
+      const imageUrl = URL.createObjectURL(file)
       
-      img.onload = () => {
-        let width = img.naturalWidth
-        let height = img.naturalHeight
-        const maxDimension = 1000
-
-        if (width > height && width > maxDimension) {
-          height = (height * maxDimension) / width
-          width = maxDimension
-        } else if (height > maxDimension) {
-          width = (width * maxDimension) / height
-          height = maxDimension
-        }
-
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
+      Quagga.decodeSingle({
+        decoder: {
+          readers: ["ean_reader", "ean_8_reader"],
+          tryHarder: true
+        },
+        locate: true,
+        src: imageUrl
+      }, (result) => {
+        URL.revokeObjectURL(imageUrl)
         
-        canvas.width = width
-        canvas.height = height
-
-        ctx.imageSmoothingEnabled = true
-        ctx.imageSmoothingQuality = 'high'
-
-        ctx.drawImage(img, 0, 0, width, height)
-
-        canvas.toBlob(blob => {
-          if (objectUrl) {
-            URL.revokeObjectURL(objectUrl)
-          }
-          resolve(blob)
-        }, 'image/jpeg', 0.95)
-      }
-      
-      img.onerror = (error) => {
-        if (objectUrl) {
-          URL.revokeObjectURL(objectUrl)
+        if (result && result.codeResult) {
+          resolve(result.codeResult.code)
+        } else {
+          resolve(null)
         }
-        reject(error)
-      }
-
-      objectUrl = URL.createObjectURL(file)
-      img.src = objectUrl
+      })
     })
+  }
+
+  isValidISBN(isbn) {
+    return isbn.length === 13 && (isbn.startsWith('978') || isbn.startsWith('979'))
   }
 
   promptFileSelection(event) {
