@@ -72,6 +72,8 @@ export default class extends Controller {
 
   // 2. A helper function that attempts to decode with a single patchSize
   decodeWithPatchSize(imageUrl, patchSize) {
+    console.log('Decoding with patch size', patchSize)
+    
     return new Promise((resolve, reject) => {
       Quagga.decodeSingle({
         src: imageUrl,
@@ -95,6 +97,7 @@ export default class extends Controller {
   }
 
   isValidISBN(isbn) {
+    
     return isbn.length === 13 && (isbn.startsWith('978') || isbn.startsWith('979'))
   }
 
