@@ -53,7 +53,7 @@ export default class extends Controller {
 
   // 1. The main function that tries multiple patch sizes in sequence
   async scanBarcode(file) {
-    const patchSizes = ["medium", "small", "large"]
+    const patchSizes = ["medium", "large","small"]
     const imageUrl = URL.createObjectURL(file)
 
     try {
@@ -73,7 +73,7 @@ export default class extends Controller {
   // 2. A helper function that attempts to decode with a single patchSize
   decodeWithPatchSize(imageUrl, patchSize) {
     console.log('Decoding with patch size', patchSize)
-    
+
     return new Promise((resolve, reject) => {
       Quagga.decodeSingle({
         src: imageUrl,
