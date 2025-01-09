@@ -1,27 +1,15 @@
 class Book < ApplicationRecord
-  # Standard presence validations for required fields
+  has_many :editions, class_name: "BookEdition"
+
   validates :title, presence: true
   validates :author, presence: true
-
-  # Add presence validation for series
   validates :series, presence: true
-
-  # Add presence and numericality validation for published year
-  validates :published,
-    presence: true,
-    numericality: { only_integer: true, greater_than_or_equal_to: 0 }
-
-  # Add presence and uniqueness validation for isbn
-  validates :isbn,
-    presence: true,
-    uniqueness: true
 
   # AR details group validations
   validates :atos_book_level, :ar_points, :interest_level, :word_count,
     presence: true,
     if: :ar_details_present?
 
-  # Numeric validations
   validates :atos_book_level,
     numericality: {
       greater_than_or_equal_to: 1,
@@ -39,6 +27,10 @@ class Book < ApplicationRecord
       greater_than: 0
     },
     if: :word_count
+
+  def primary_edition
+    editions.order(publication_year: :desc).first
+  end
 
   private
 
