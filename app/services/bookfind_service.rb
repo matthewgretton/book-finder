@@ -21,8 +21,8 @@ class BookfindService
 
     private :new
 
-    def search_by_title(title)
-      instance.search_by_title(title)
+    def search_by_title_and_author(title, author)
+      instance.search_by_title(title, author)
     end
 
     def search_by_isbn(isbn)
@@ -34,8 +34,8 @@ class BookfindService
     setup_session
   end
 
-  def search_by_title(title)
-    search_params = { title: title }
+  def search_by_title_and_author(title, author)
+    search_params = { title: title, author: author }
     perform_search(search_params)
   end
 
