@@ -1,5 +1,8 @@
 source "https://rubygems.org"
 
+gem "psych", "~> 5.1.0"
+gem "rdoc", "~> 6.5.0"
+
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.0.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
