@@ -417,10 +417,8 @@ DEPENDENCIES
   mechanize
   nokogiri
   propshaft
-  psych (~> 5.1.0)
   puma (>= 5.0)
   rails (~> 8.0.1)
-  rdoc (~> 6.5.0)
   rubocop-rails-omakase
   ruby-vips
   selenium-webdriver
