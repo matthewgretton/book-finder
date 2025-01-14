@@ -33,7 +33,7 @@ class BookfindService
     return [] if result.nil?
 
     title = result[:title]
-    perform_search(title)
+    perform_search(%Q("#{title}"))
   end
 
   private
