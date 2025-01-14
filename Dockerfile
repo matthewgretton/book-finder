@@ -16,7 +16,7 @@ RUN apt-get update -qq && \
     libtiff-dev \
     ghostscript \
     zbar-tools \
-    libyaml-dev \ # Added libyaml-dev here \ 
+    libyaml-dev \
     && ln -s /usr/lib/*/libzbar.so /usr/lib/ \
     && rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
@@ -36,7 +36,7 @@ RUN apt-get update -qq && \
     git \
     pkg-config \
     libzbar-dev \
-    libyaml-dev \ # Added libyaml-dev here \
+    libyaml-dev \ 
     && rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 COPY Gemfile Gemfile.lock ./
