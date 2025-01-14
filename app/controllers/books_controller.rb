@@ -5,8 +5,10 @@ class BooksController < ApplicationController
     author = params[:author_query]
 
     if title.present? || author.present?
+      puts "search_arbookfind for title= #{title}, author= #{author}"
+
       @books = TimeHelper.time_function("search_arbookfind for title= #{title}, author= #{author}") do
-        BookfindService.instance.search_by_title_and_author(params[:query])
+        BookfindService.instance.search_by_title_and_author(params[:title_query], params[:author_query])
       end
     elsif params[:isbns].present?
       isbns = params[:isbns].split(",")
