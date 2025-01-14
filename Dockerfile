@@ -16,6 +16,7 @@ RUN apt-get update -qq && \
     libtiff-dev \
     ghostscript \
     zbar-tools \
+    libyaml-dev \
     && ln -s /usr/lib/*/libzbar.so /usr/lib/ \
     && rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
@@ -34,8 +35,9 @@ RUN apt-get update -qq && \
     build-essential \
     git \
     pkg-config \
-    libzbar-dev && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+    libzbar-dev \
+    libyaml-dev \ 
+    && rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 COPY Gemfile Gemfile.lock ./
 RUN bundle install && \
