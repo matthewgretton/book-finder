@@ -35,7 +35,10 @@ class BookfindService
   end
 
   def search_by_title_and_author(title, author)
-    search_params = { title: title, author: author }
+    search_params = {}
+    search_params[:title] = title if title.present?
+    search_params[:author] = author if author.present?
+
     perform_search(search_params)
   end
 
@@ -68,6 +71,13 @@ class BookfindService
     def perform_search(search_params)
       begin
         form = @search_page.form_with(name: "aspnetForm")
+
+        form[FORM_FIELDS[:title]] = ""
+        form[FORM_FIELDS[:author]] = ""
+        form[FORM_FIELDS[:series]] = ""
+        form[FORM_FIELDS[:isbn]] = ""
+
+
         search_params.each do |param, value|
           field = FORM_FIELDS[param]
           form[field] = value if field && value.present?
