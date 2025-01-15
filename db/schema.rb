@@ -10,28 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_01_09_170246) do
-  create_table "book_editions", force: :cascade do |t|
-    t.integer "book_id", null: false
-    t.string "isbn", null: false
-    t.integer "publication_year", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["book_id"], name: "index_book_editions_on_book_id"
-    t.index ["isbn"], name: "index_book_editions_on_isbn", unique: true
-  end
-
+ActiveRecord::Schema[8.0].define(version: 2025_01_15_134608) do
   create_table "books", force: :cascade do |t|
-    t.string "title", null: false
-    t.string "author", null: false
-    t.decimal "atos_book_level", precision: 2, scale: 1
-    t.decimal "ar_points", precision: 3, scale: 1
-    t.string "interest_level"
-    t.integer "word_count"
+    t.string "isbn", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "series"
+    t.index ["isbn"], name: "index_books_on_isbn", unique: true
   end
-
-  add_foreign_key "book_editions", "books"
 end

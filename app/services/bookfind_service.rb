@@ -111,7 +111,7 @@ class BookfindService
         word_count = extract_word_count(detail_doc)
         other_details = extract_other_details(meta_paragraph)
 
-        Book.new(
+        BookDetails.new(
           title: title,
           author: author,
           series: series,
