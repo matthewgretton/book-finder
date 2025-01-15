@@ -32,7 +32,7 @@ class BookfindService
     result = find_book_by_isbn(isbn)
     return [] if result.nil?
 
-    title = result[:title]
+    title = "\"#{result[:title]}\""
     perform_search(title)
   end
 
