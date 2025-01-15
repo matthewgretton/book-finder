@@ -3,9 +3,10 @@ class BooksController < ApplicationController
     @books = []
     query = params[:query]
 
-
     if query.present?
-      puts "search_arbookfind for query = #{query}"
+
+      query = query.gsub(/[“”]/, '"')
+      Rails.logger.info "search_arbookfind for query = #{query}"
 
       @books = TimeHelper.time_function("search_arbookfind for query = #{query}") do
         BookfindService.instance.search(query)
