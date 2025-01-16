@@ -38,8 +38,7 @@ class BookfindService
     Rails.logger.info "result = #{result}"
     return [] if result.nil?
 
-    search_params = { title: result[:title] }
-    adv_perform_search(search_params)
+    adv_perform_search(result)
   end
 
   private
