@@ -1,7 +1,12 @@
 class BookfindService
   FORM_FIELDS = {
+    # Basic search fields
     search_term: "ctl00$ContentPlaceHolder1$txtKeyWords",
-    submit: "ctl00$ContentPlaceHolder1$btnDoIt"
+    isbn: "ctl00$ContentPlaceHolder1$txtISBN",
+    submit: "ctl00$ContentPlaceHolder1$btnDoIt",
+    # Advanced search fields
+    title: "ctl00$ContentPlaceHolder1$txtTitle",
+    author: "ctl00$ContentPlaceHolder1$txtAuthor"
   }.freeze
 
   class << self
@@ -21,7 +26,7 @@ class BookfindService
   end
 
   def initialize
-    setup_session
+    setup_sessions
   end
 
   def search(query)
@@ -30,18 +35,26 @@ class BookfindService
 
   def search_by_isbn(isbn)
     result = find_book_by_isbn(isbn)
+    Rails.logger.info "result = #{result}"
     return [] if result.nil?
 
-    title = "\"#{result[:title]}\""
-    perform_search(title)
+    search_params = { title: result[:title] }
+    adv_perform_search(search_params)
   end
 
   private
 
-    def setup_session
-      Rails.logger.info "Setting up AR Bookfind session"
+    def setup_sessions
+      @sessions = {
+        basic: setup_single_session("default.aspx"),
+        advanced: setup_single_session("advanced.aspx")
+      }
+    end
+
+    def setup_single_session(endpoint)
+      Rails.logger.info "Setting up AR Bookfind session for #{endpoint}"
       agent = Mechanize.new
-      page = agent.get("https://www.arbookfind.co.uk/default.aspx")
+      page = agent.get("https://www.arbookfind.co.uk/#{endpoint}")
 
       if form = page.form_with(name: "form1")
         radio = form.radiobutton_with(value: "radParent")
@@ -51,46 +64,68 @@ class BookfindService
         end
       end
 
-      @search_page = page
-      @agent = agent
+      { page: page, agent: agent }
     end
 
     def perform_search(search_term)
+      execute_search(:basic) do |form|
+        form[FORM_FIELDS[:search_term]] = search_term
+      end
+    end
+
+    def adv_perform_search(search_params)
+      execute_search(:advanced) do |form|
+        # Clear existing values
+        FORM_FIELDS.slice(:title, :author).each do |_, field|
+          form[field] = ""
+        end
+
+        # Set new search parameters
+        search_params.each do |param, value|
+          field = FORM_FIELDS[param]
+          form[field] = value if field && value.present?
+        end
+      end
+    end
+
+    def execute_search(session_type)
       begin
-        form = @search_page.form_with(name: "aspnetForm")
+        session = @sessions[session_type]
+        form = session[:page].form_with(name: "aspnetForm")
 
         if form
-          form[FORM_FIELDS[:search_term]] = search_term
-
+          yield(form)
           submit_button = form.button_with(name: FORM_FIELDS[:submit])
+
           if submit_button
             results_page = form.submit(submit_button)
-            parse_results(results_page)
+            parse_results(session[:agent], results_page)
           else
+            Rails.logger.error "No submit button found"
             []
           end
         else
+          Rails.logger.error "No form found"
           []
         end
-      rescue OpenSSL::SSL::SSLError, Mechanize::Error, Net::HTTP::Persistent::Error
-        @agent = nil
-        @search_page = nil
-        setup_session
+      rescue OpenSSL::SSL::SSLError, Mechanize::Error, Net::HTTP::Persistent::Error => e
+        Rails.logger.error "Search error: #{e.message}"
+        @sessions[session_type] = setup_single_session(session_type == :basic ? "default.aspx" : "advanced.aspx")
         retry
       end
     end
 
-    def parse_results(page)
+    def parse_results(agent, page)
       doc = Nokogiri::HTML(page.body)
 
       no_results = doc.at_css("span#ctl00_ContentPlaceHolder1_lblNoResults")
       return [] if no_results && no_results.text.strip.present?
 
       book_details = doc.css("table.book-result")
-      book_details.map { |detail| extract_book_from_details(detail) }.compact
+      book_details.map { |detail| extract_book_from_details(agent, detail) }.compact
     end
 
-    def extract_book_from_details(book_detail)
+    def extract_book_from_details(agent, book_detail)
       detail_cell = book_detail.at_css("td.book-detail")
       return nil unless detail_cell
 
@@ -104,21 +139,15 @@ class BookfindService
       if title_link["href"]
         detail_link = title_link["href"]
         detail_page_url = "https://www.arbookfind.co.uk/#{detail_link}"
-        detail_page = @agent.get(detail_page_url)
+        detail_page = agent.get(detail_page_url)
         detail_doc = Nokogiri::HTML(detail_page.body)
-
-        series = extract_series(detail_doc)
-        word_count = extract_word_count(detail_doc)
-        other_details = extract_other_details(meta_paragraph)
 
         BookDetails.new(
           title: title,
           author: author,
-          series: series,
-          atos_book_level: other_details[:atos_book_level],
-          interest_level: other_details[:interest_level],
-          ar_points: other_details[:ar_points],
-          word_count: word_count
+          series: extract_series(detail_doc),
+          word_count: extract_word_count(detail_doc),
+          **extract_other_details(meta_paragraph)
         )
       end
     end
@@ -135,7 +164,6 @@ class BookfindService
 
     def extract_other_details(meta_paragraph)
       return {} unless meta_paragraph
-
       paragraph_text = meta_paragraph.text.strip
 
       {
