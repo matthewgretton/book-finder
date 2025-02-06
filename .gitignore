@@ -33,4 +33,10 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
+/vendor/bundle
+/vendor/cache
+/vendor/gems
+/vendor/ruby
+/vendor/plugins
+
 .DS_Store
