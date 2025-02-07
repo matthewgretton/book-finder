@@ -1,13 +1,13 @@
 <main>
+  <!-- Existing Search Form -->
+  <%= form_with url: search_books_path, method: :get, local: true, data: { turbo: false } do |f| %>
+    <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem;">
+      <%= f.text_field :query, value: params[:query], placeholder: "Title, author, series, ISBN..." %>
+      <%= f.submit "Search", onclick: "this.value='Searching...'; this.disabled=true; this.form.submit();" %>
+    </div>
+  <% end %>
 
-<%= form_with url: search_books_path, method: :get, local: true, data: { turbo: false } do |f| %>
-  <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem;">
-    <%= f.text_field :query, value: params[:query], placeholder: "Title, author, series, ISBN..." %>
-    <%= f.submit "Search", onclick: "this.value='Searching...'; this.disabled=true; this.form.submit();" %>
-  </div>
-<% end %>
-
-  <!-- Results -->
+  <!-- Results Section -->
   <% if @books.any? %>
     <div class="table-wrapper" style="width: 100%;" data-controller="table" data-table-target="wrapper">
       <table data-table-target="table" style="width: 100%;">
@@ -27,21 +27,20 @@
             <tr>
               <td><%= book.title %></td>
               <td><%= book.author %></td>
-               <td><%= book.series %></td>
+              <td><%= book.series %></td>
               <td data-tooltip="<%= case book.interest_level
-                # UK codes
-                when 'LY' then 'Lower Years: Ages 5-8'
-                when 'MY' then 'Middle Years: Ages 9-11'
-                when 'MY+' then 'Middle Years Plus: Ages 12-13'
-                when 'UY' then 'Upper Years: Ages 14+'
-                # US codes
-                when 'LG' then 'Lower Grades: Ages 5-8'
-                when 'MG' then 'Middle Grades: Ages 9-11'
-                when 'MG+' then 'Middle Grades Plus: Ages 12-13'
-                when 'UG' then 'Upper Grades: Ages 14+'
-                else 'Unknown Interest Level'
+                  when 'LY' then 'Lower Years: Ages 5-8'
+                  when 'MY' then 'Middle Years: Ages 9-11'
+                  when 'MY+' then 'Middle Years Plus: Ages 12-13'
+                  when 'UY' then 'Upper Years: Ages 14+'
+                  when 'LG' then 'Lower Grades: Ages 5-8'
+                  when 'MG' then 'Middle Grades: Ages 9-11'
+                  when 'MG+' then 'Middle Grades Plus: Ages 12-13'
+                  when 'UG' then 'Upper Grades: Ages 14+'
+                  else 'Unknown Interest Level'
                 end %>">
-              <%= book.interest_level %>
+                <%= book.interest_level %>
+              </td>
               <td><%= book.atos_book_level %></td>
               <td><%= book.ar_points %></td>
               <td><%= book.word_count %></td>
@@ -56,19 +55,34 @@
   
   <hr>
 
- <!-- ISBN Live Scan Form -->
-<%= form_with url: search_books_path, method: :get, data: { 
-  controller: "photo-upload",
-  photo_upload_url_value: search_books_path,
-  turbo: false 
-} do |f| %>
-  <div style="display: grid; grid-template-columns: 1fr auto">
-    <%= f.submit "Scan Barcode(s)", 
-          data: { 
-            photo_upload_target: "submitButton",
-            action: "click->photo-upload#startScan"
-          },
-          onclick: "return false;" %>
+  <!-- Barcode Scan Form -->
+  <%= form_with url: search_books_path, method: :get, data: { 
+    controller: "photo-upload",
+    photo_upload_url_value: search_books_path,
+    turbo: false 
+  } do |f| %>
+    <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem;">
+      <%= f.submit "Scan Barcode(s)", 
+            id: "scan-button",
+            style: "width: 100%;",
+            data: { 
+              photo_upload_target: "submitButton",
+              action: "click->photo-upload#toggleScan"
+            },
+            onclick: "return false;" %>
+    </div>
+  <% end %>
+
+  <!-- Live Scanner Container -->
+  <div style="display: grid; grid-template-columns: 1fr; margin-top: 1rem;">
+    <div id="live-scanner-container"
+         style="width: 100%; max-width: 640px; 
+                height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 180px); 
+                margin-top: env(safe-area-inset-top, 0px);
+                display: none; 
+                border: 1px solid #ccc; 
+                overflow: hidden; 
+                position: relative;">
+    </div>
   </div>
-<% end %>
 </main>

@@ -14,6 +14,8 @@ class BooksController < ApplicationController
     elsif params[:isbns].present?
       isbns = params[:isbns].split(",")
 
+      Rails.logger.info "search_arbookfind for ISBNs #{isbns}"
+
       isbn_threads = isbns.map do |isbn|
         Thread.new do
           TimeHelper.time_function("search_arbookfind for ISBN #{isbn}") do
