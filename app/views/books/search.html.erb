@@ -56,27 +56,19 @@
   
   <hr>
 
-  <!-- ISBN Photo Search -->
-<%= form_with url: search_books_path, method: :get, multipart: true, data: { 
+ <!-- ISBN Live Scan Form -->
+<%= form_with url: search_books_path, method: :get, data: { 
   controller: "photo-upload",
   photo_upload_url_value: search_books_path,
   turbo: false 
 } do |f| %>
   <div style="display: grid; grid-template-columns: 1fr auto">
-    <%= f.file_field :photos, 
-        multiple: true,
-        accept: 'image/*', 
-        style: "display: none;", 
-        data: { 
-          photo_upload_target: "fileInput",
-          action: "change->photo-upload#handleFileChange"
-        } %>
     <%= f.submit "Scan Barcode(s)", 
-        data: { 
-          photo_upload_target: "submitButton",
-          action: "click->photo-upload#promptFileSelection"
-        },
-        onclick: "return false;" %>
+          data: { 
+            photo_upload_target: "submitButton",
+            action: "click->photo-upload#startScan"
+          },
+          onclick: "return false;" %>
   </div>
 <% end %>
 </main>
