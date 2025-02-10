@@ -5,7 +5,8 @@ class BooksController < ApplicationController
 
     if query.present?
 
-      query = query.gsub(/[“”]/, '"')
+      query = "\"#{query.gsub(/[“”]/, '"')}\""
+
       Rails.logger.info "search_arbookfind for query = #{query}"
 
       @books = TimeHelper.time_function("search_arbookfind for query = #{query}") do

@@ -10,6 +10,19 @@ export default class extends Controller {
 
   toggleScan(event) {
     event.preventDefault();
+  
+    // Clear out the search text input field (if it exists)
+    const searchInput = document.querySelector('input[name="query"]');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+  
+    // Remove the books table container from the DOM
+    const tableWrapper = document.querySelector('[data-table-target="wrapper"]');
+    if (tableWrapper) {
+      tableWrapper.remove();
+    }
+  
     const scanButton = document.getElementById("scan-button");
     if (scanButton.dataset.scanning === "true") {
       this.stopScan();
@@ -17,6 +30,7 @@ export default class extends Controller {
       this.startScan();
     }
   }
+  
 
   startScan() {
     const scanButton = document.getElementById("scan-button");
