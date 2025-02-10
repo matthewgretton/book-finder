@@ -32,8 +32,9 @@ export default class extends Controller {
     container.style.height = `${safeHeight}px`;
     container.style.display = "block";
 
+    // Mark that scanning is active and reset the button state without re-triggering the event
     scanButton.dataset.scanning = "true";
-    scanButton.click();  // Reset button state before changing text
+    scanButton.blur();
     scanButton.value = "Cancel";
 
     Quagga.init({
@@ -89,7 +90,7 @@ export default class extends Controller {
     
     if (scanButton) {
       scanButton.dataset.scanning = "false";
-      scanButton.click();  // Reset button state before changing text
+      scanButton.blur();
       scanButton.value = "Scan Barcode(s)";
     }
   }
