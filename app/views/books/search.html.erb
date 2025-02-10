@@ -57,7 +57,7 @@
 
   <!-- Barcode Scan Form -->
   <%= form_with url: search_books_path, method: :get, data: { 
-    controller: "photo-upload",
+    controller: "barcode-scanner",
     photo_upload_url_value: search_books_path,
     turbo: false 
   } do |f| %>
@@ -67,7 +67,7 @@
             style: "width: 100%;",
             data: { 
               photo_upload_target: "submitButton",
-              action: "click->photo-upload#toggleScan"
+              action: "click->barcode-scanner#toggleScan"
             },
             onclick: "return false;" %>
     </div>
