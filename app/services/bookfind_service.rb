@@ -189,20 +189,21 @@ class BookfindService
 
     def find_book_by_isbn(isbn)
       response = HTTParty.get(
-        "https://www.googleapis.com/books/v1/volumes",
+        "https://openlibrary.org/api/books",
         query: {
-          q: "isbn:#{isbn}",
-          maxResults: 1,
-          fields: "items(volumeInfo(title,authors))"
+          bibkeys: "ISBN:#{isbn}",
+          format: "json",
+          jscmd: "data"
         }
       )
 
-      return nil if response["items"].nil? || response["items"].empty?
+      # OpenLibrary returns a hash with key "ISBN:#{isbn}"
+      book_data = response["ISBN:#{isbn}"]
+      return nil unless book_data
 
-      volume_info = response["items"].first["volumeInfo"]
       {
-        title: volume_info["title"],
-        author: volume_info["authors"]&.first
+        title: book_data["title"],
+        author: book_data.dig("authors", 0, "name")
       }
     end
 end
