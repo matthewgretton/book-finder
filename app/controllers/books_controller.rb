@@ -1,20 +1,17 @@
+# app/controllers/books_controller.rb
 class BooksController < ApplicationController
   def search
     @books = []
     query = params[:query]
 
     if query.present?
-
       query = "\"#{query.gsub(/[“”]/, '"')}\""
-
       Rails.logger.info "search_arbookfind for query = #{query}"
-
       @books = TimeHelper.time_function("search_arbookfind for query = #{query}") do
         BookfindService.instance.search(query)
       end
     elsif params[:isbns].present?
       isbns = params[:isbns].split(",")
-
       Rails.logger.info "search_arbookfind for ISBNs #{isbns}"
 
       isbn_threads = isbns.map do |isbn|
