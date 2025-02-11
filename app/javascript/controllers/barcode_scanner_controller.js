@@ -22,7 +22,7 @@ export default class extends Controller {
     // Clear out the search text input field (if it exists)
     const searchInput = document.querySelector('input[name="query"]');
     if (searchInput) {
-      searchInput.value = '';
+      searchInput.value = "";
     }
 
     // Remove the books table container from the DOM (if present)
@@ -33,8 +33,11 @@ export default class extends Controller {
 
     const scanButton = document.getElementById("scan-button");
     if (scanButton.dataset.scanning === "true") {
-      // Stop scanning and process the accumulated ISBNs.
-      this.stopScan();
+      // We're currently scanning; so now we want to stop scanning and look up details.
+      // Change the button text to indicate the lookup is in progress.
+      scanButton.value = "Looking Up Book Details...";
+      // Stop scanning without resetting the button text.
+      this.stopScanWithoutResettingButton();
       console.log("Captured ISBNs:", Array.from(this.capturedISBNs));
       
       // If one or more ISBNs were captured, redirect with them.
@@ -42,7 +45,7 @@ export default class extends Controller {
         window.location.href = `${this.urlValue}?isbns=${Array.from(this.capturedISBNs).join(",")}`;
       }
     } else {
-      // Reset the ISBN set for a new scanning session.
+      // Start a new scanning session.
       this.capturedISBNs.clear();
       this.startScan();
     }
@@ -65,7 +68,7 @@ export default class extends Controller {
     // Update the button to reflect that scanning is active.
     scanButton.dataset.scanning = "true";
     scanButton.blur();
-    // Change the button text to "Look Up ISBNs" when scanning is active.
+    // When scanning is active, we label the button as "Look Up Book Details"
     scanButton.value = "Look Up Book Details";
 
     Quagga.init(
@@ -114,6 +117,7 @@ export default class extends Controller {
     Quagga.onDetected(this.onDetected.bind(this));
   }
 
+  // This stops scanning and resets the UI, including resetting the button text.
   stopScan() {
     Quagga.stop();
     const scanButton = document.getElementById("scan-button");
@@ -126,8 +130,23 @@ export default class extends Controller {
     if (scanButton) {
       scanButton.dataset.scanning = "false";
       scanButton.blur();
-      // Revert the button text to "Scan Barcode(s)" when scanning stops.
+      // Revert the button text to the default.
       scanButton.value = "Scan Barcode(s)";
+    }
+  }
+
+  // This stops scanning without changing the button text.
+  stopScanWithoutResettingButton() {
+    Quagga.stop();
+    const container = document.getElementById("live-scanner-container");
+    if (container) {
+      container.style.display = "none";
+    }
+    const scanButton = document.getElementById("scan-button");
+    if (scanButton) {
+      scanButton.dataset.scanning = "false";
+      scanButton.blur();
+      // Note: We intentionally do not update scanButton.value here.
     }
   }
 
@@ -137,7 +156,7 @@ export default class extends Controller {
 
     if (result && result.codeResult && result.codeResult.code) {
       // Remove any non-digit characters.
-      const isbn = result.codeResult.code.replace(/[^0-9]/g, '');
+      const isbn = result.codeResult.code.replace(/[^0-9]/g, "");
       console.log("Detected ISBN:", isbn);
       if (this.isValidISBN(isbn)) {
         // Only add and show notification if the ISBN hasn't already been captured.
@@ -155,7 +174,9 @@ export default class extends Controller {
   }
 
   isValidISBN(isbn) {
-    return isbn.length === 13 && (isbn.startsWith("978") || isbn.startsWith("979"));
+    return (
+      isbn.length === 13 && (isbn.startsWith("978") || isbn.startsWith("979"))
+    );
   }
 
   // Display a temporary notification in the middle of the scanner container.
@@ -167,8 +188,7 @@ export default class extends Controller {
     const notification = document.createElement("div");
     notification.textContent = message;
 
-    // Use custom styling for better visibility.
-    // Feel free to adjust these values as needed.
+    // Use custom styling for better visibility over a red background.
     notification.classList.add("alert", "alert-info");
     notification.style.position = "absolute";
     notification.style.top = "50%";
@@ -177,7 +197,6 @@ export default class extends Controller {
     notification.style.zIndex = "1000"; // Ensure it appears above the video.
     notification.style.transition = "opacity 1s ease-out";
     notification.style.opacity = 1;
-    // Custom styling for better visibility over a red background.
     notification.style.backgroundColor = "rgba(0, 0, 0, 0.7)"; // Semi-transparent dark background.
     notification.style.color = "#fff"; // White text.
     notification.style.fontSize = "1.5rem"; // Bigger text.
