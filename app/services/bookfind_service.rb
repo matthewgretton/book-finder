@@ -41,6 +41,21 @@ class BookfindService
     adv_perform_search(result)
   end
 
+  def adv_perform_search(search_params)
+    execute_search(:advanced) do |form|
+      # Clear existing values
+      FORM_FIELDS.slice(:title, :author).each do |_, field|
+        form[field] = ""
+      end
+
+      # Set new search parameters
+      search_params.each do |param, value|
+        field = FORM_FIELDS[param]
+        form[field] = value if field && value.present?
+      end
+    end
+  end
+
   private
 
     def setup_sessions
@@ -72,20 +87,7 @@ class BookfindService
       end
     end
 
-    def adv_perform_search(search_params)
-      execute_search(:advanced) do |form|
-        # Clear existing values
-        FORM_FIELDS.slice(:title, :author).each do |_, field|
-          form[field] = ""
-        end
 
-        # Set new search parameters
-        search_params.each do |param, value|
-          field = FORM_FIELDS[param]
-          form[field] = value if field && value.present?
-        end
-      end
-    end
 
     def execute_search(session_type)
       begin
