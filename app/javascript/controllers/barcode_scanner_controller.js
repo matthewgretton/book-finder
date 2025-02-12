@@ -6,8 +6,9 @@ export default class extends Controller {
   static values = { url: String };
 
   connect() {
-    // Use a Set to store unique ISBNs.
-    this.capturedISBNs = new Set();
+    // Use a Map to store unique book details keyed by the scanned ISBN.
+    // The stored object will only have the title and author.
+    this.capturedBooks = new Map();
     // Flag to throttle detections (prevents duplicate notifications)
     this.detectionPaused = false;
   }
@@ -33,20 +34,23 @@ export default class extends Controller {
 
     const scanButton = document.getElementById("scan-button");
     if (scanButton.dataset.scanning === "true") {
-      // We're currently scanning; so now we want to stop scanning and look up details.
-      // Change the button text to indicate the lookup is in progress.
-      scanButton.value = "Looking Up Book Details...";
-      // Stop scanning without resetting the button text.
+      // User pressed the button to stop scanning and look up details.
+      scanButton.value = "Looking up book details...";
       this.stopScanWithoutResettingButton();
-      console.log("Captured ISBNs:", Array.from(this.capturedISBNs));
-      
-      // If one or more ISBNs were captured, redirect with them.
-      if (this.capturedISBNs.size > 0) {
-        window.location.href = `${this.urlValue}?isbns=${Array.from(this.capturedISBNs).join(",")}`;
+      console.log("Captured Books:", Array.from(this.capturedBooks.values()));
+
+      if (this.capturedBooks.size > 0) {
+        // Convert the Map values (which are objects of the form {title, author})
+        // to JSON and pass them to the Rails controller.
+        const booksArray = Array.from(this.capturedBooks.values());
+        window.location.href = `${this.urlValue}?books=${encodeURIComponent(JSON.stringify(booksArray))}`;
+      } else {
+        scanButton.value = "Scan Barcode(s)";
+        alert("No valid book details were captured. Please try scanning again.");
       }
     } else {
       // Start a new scanning session.
-      this.capturedISBNs.clear();
+      this.capturedBooks.clear();
       this.startScan();
     }
   }
@@ -65,10 +69,10 @@ export default class extends Controller {
     container.style.height = `${safeHeight}px`;
     container.style.display = "block";
 
-    // Update the button to reflect that scanning is active.
+    // Mark scanning as active.
     scanButton.dataset.scanning = "true";
     scanButton.blur();
-    // When scanning is active, we label the button as "Look Up Book Details"
+    // Button label when scanning is active.
     scanButton.value = "Look Up Book Details";
 
     Quagga.init(
@@ -117,7 +121,7 @@ export default class extends Controller {
     Quagga.onDetected(this.onDetected.bind(this));
   }
 
-  // This stops scanning and resets the UI, including resetting the button text.
+  // Stops scanning and resets the UI (including resetting the button text).
   stopScan() {
     Quagga.stop();
     const scanButton = document.getElementById("scan-button");
@@ -130,12 +134,11 @@ export default class extends Controller {
     if (scanButton) {
       scanButton.dataset.scanning = "false";
       scanButton.blur();
-      // Revert the button text to the default.
       scanButton.value = "Scan Barcode(s)";
     }
   }
 
-  // This stops scanning without changing the button text.
+  // Stops scanning without changing the button text (used during lookup).
   stopScanWithoutResettingButton() {
     Quagga.stop();
     const container = document.getElementById("live-scanner-container");
@@ -146,28 +149,45 @@ export default class extends Controller {
     if (scanButton) {
       scanButton.dataset.scanning = "false";
       scanButton.blur();
-      // Note: We intentionally do not update scanButton.value here.
     }
   }
 
   onDetected(result) {
-    // If we're in a cooldown period, exit early.
     if (this.detectionPaused) return;
 
     if (result && result.codeResult && result.codeResult.code) {
       // Remove any non-digit characters.
-      const isbn = result.codeResult.code.replace(/[^0-9]/g, "");
+      const isbn = result.codeResult.code.replace(/[^0-9]/g, '');
       console.log("Detected ISBN:", isbn);
       if (this.isValidISBN(isbn)) {
-        // Only add and show notification if the ISBN hasn't already been captured.
-        if (!this.capturedISBNs.has(isbn)) {
-          this.capturedISBNs.add(isbn);
-          this.showNotification(`${isbn} scanned`);
-          // Pause further detections briefly to avoid duplicate notifications.
+        if (!this.capturedBooks.has(isbn)) {
+          // Pause further detections temporarily.
           this.detectionPaused = true;
-          setTimeout(() => {
-            this.detectionPaused = false;
-          }, 1000); // 1-second cooldown period.
+          // Call Open Library to get book details.
+          fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
+            .then(response => response.json())
+            .then(data => {
+              const key = `ISBN:${isbn}`;
+              if (data && data[key]) {
+                const bookData = data[key];
+                const title = bookData.title;
+                const author = (bookData.authors && bookData.authors[0].name) || "Unknown Author";
+                // Store only the title and author.
+                this.capturedBooks.set(isbn, { title: title, author: author });
+                // Notify the user with the scanned book title.
+                this.showNotification(`Scanned "${title}"`);
+              } else {
+                console.log("No valid data returned from OpenLibrary for ISBN:", isbn);
+              }
+            })
+            .catch(err => {
+              console.error("Error fetching from OpenLibrary:", err);
+            })
+            .finally(() => {
+              setTimeout(() => {
+                this.detectionPaused = false;
+              }, 1000); // Adjust the pause duration as needed.
+            });
         }
       }
     }
@@ -175,43 +195,52 @@ export default class extends Controller {
 
   isValidISBN(isbn) {
     return (
-      isbn.length === 13 && (isbn.startsWith("978") || isbn.startsWith("979"))
+      isbn.length === 13 &&
+      /^[0-9]+$/.test(isbn) &&
+      (isbn.startsWith("978") || isbn.startsWith("979"))
     );
   }
 
-  // Display a temporary notification in the middle of the scanner container.
   showNotification(message) {
     const container = document.getElementById("live-scanner-container");
     if (!container) return;
-
-    // Create a notification element.
+  
     const notification = document.createElement("div");
     notification.textContent = message;
-
-    // Use custom styling for better visibility over a red background.
     notification.classList.add("alert", "alert-info");
+    
+    // Center the notification over the video
     notification.style.position = "absolute";
     notification.style.top = "50%";
     notification.style.left = "50%";
     notification.style.transform = "translate(-50%, -50%)";
-    notification.style.zIndex = "1000"; // Ensure it appears above the video.
+    notification.style.zIndex = "1000";
+    
+    // Transition settings
     notification.style.transition = "opacity 1s ease-out";
     notification.style.opacity = 1;
+    
+    // Adjust width settings so the box is wider and text doesn't wrap too much.
+    notification.style.width = "80%";          // Use 80% of the container's width.
+    notification.style.maxWidth = "800px";       // Allow up to 800px width.
+    notification.style.whiteSpace = "normal";    // Allow wrapping normally.
+    notification.style.textAlign = "center";     // Center the text.
+    
+    // Additional styling for improved visibility.
     notification.style.backgroundColor = "rgba(0, 0, 0, 0.7)"; // Semi-transparent dark background.
-    notification.style.color = "#fff"; // White text.
-    notification.style.fontSize = "1.5rem"; // Bigger text.
+    notification.style.color = "#fff";                         // White text.
+    notification.style.fontSize = "1.5rem";                    // Larger text.
     notification.style.padding = "10px 20px";
     notification.style.borderRadius = "5px";
-
-    // Append the notification to the live scanner container.
+  
     container.appendChild(notification);
-
-    // After a delay, fade out and remove the notification.
+  
+    // Fade out and remove the notification.
     setTimeout(() => {
       notification.style.opacity = 0;
       setTimeout(() => {
         notification.remove();
-      }, 1000); // Remove after the transition completes.
-    }, 1500); // Display for 1.5 seconds before fading out.
+      }, 750);
+    }, 1500);
   }
 }
