@@ -68,12 +68,15 @@ class BookfindService
     return [] unless response.success? && response["docs"].present?
 
     # Process results
-    response["docs"].map do |book|
+    bob = response["docs"].map do |book|
       {
         title: book["title"],
         author: book.dig("author_name", 0) || "Unknown Author"
       }
-    end
+    end.uniq { |book| [ book[:title], book[:author] ] }
+
+    puts bob
+    bob
   end
 
   # Modify the existing search method to use the new flow
