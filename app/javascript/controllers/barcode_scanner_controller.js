@@ -63,10 +63,9 @@ export default class extends Controller {
       return;
     }
 
-    const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    const safeHeight = Math.min(viewportHeight - 180, 480);
+    const barcodeHeight = 240;
 
-    container.style.height = `${safeHeight}px`;
+    container.style.height = `${barcodeHeight}px`;
     container.style.display = "block";
 
     // Mark scanning as active.
@@ -83,7 +82,7 @@ export default class extends Controller {
           target: container,
           constraints: {
             width: 640,
-            height: safeHeight,
+            height: barcodeHeight,
             facingMode: "environment"
           }
         },

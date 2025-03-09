@@ -35,10 +35,75 @@ class BookfindService
 
   def search_by_isbn(isbn)
     result = find_book_by_isbn(isbn)
-    Rails.logger.info "result = #{result}"
+    Rails.logger.info "OpenLibrary result = #{result}"
     return [] if result.nil?
 
-    adv_perform_search(result)
+    ar_results = adv_perform_search(result)
+
+    if ar_results.present?
+      ar_results
+    else
+      # Return placeholder with OpenLibrary data if not in AR
+      [ BookDetails.new(
+        title: result[:title],
+        author: result[:author],
+        not_in_ar: true
+      ) ]
+    end
+  end
+
+  def find_books_by_query(query)
+    # Remove quotes from query for OpenLibrary search
+    clean_query = query.gsub(/[""]/, "").strip
+
+    # Search OpenLibrary by title or author
+    response = HTTParty.get(
+      "https://openlibrary.org/search.json",
+      query: {
+        q: clean_query,
+        limit: 10 # Limit results to avoid too many AR lookups
+      }
+    )
+
+    return [] unless response.success? && response["docs"].present?
+
+    # Process results
+    response["docs"].map do |book|
+      {
+        title: book["title"],
+        author: book.dig("author_name", 0) || "Unknown Author"
+      }
+    end
+  end
+
+  # Modify the existing search method to use the new flow
+  def search(query)
+    # First try to find books on OpenLibrary
+    Rails.logger.info "Searching OpenLibrary for query = #{query}"
+    open_library_results = TimeHelper.time_function("search_openlibrary for query = #{query}") do
+      find_books_by_query(query)
+    end
+
+    return [] if open_library_results.empty?
+
+    # For each OpenLibrary result, check AR BookFind
+    results = open_library_results.map do |book_data|
+      ar_results = adv_perform_search(book_data)
+
+      if ar_results.present?
+        # If found in AR, use those results
+        ar_results
+      else
+        # If not found in AR, create a placeholder with OpenLibrary data
+        BookDetails.new(
+          title: book_data[:title],
+          author: book_data[:author],
+          not_in_ar: true
+        )
+      end
+    end
+
+    results.flatten
   end
 
   def adv_perform_search(search_params)

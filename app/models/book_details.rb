@@ -2,11 +2,12 @@ class BookDetails
   include ActiveModel::Model
 
   attr_accessor :title, :author, :series, :atos_book_level,
-                :ar_points, :interest_level, :word_count
+                :ar_points, :interest_level, :word_count, :not_in_ar
 
-  validates :title, presence: true
-  validates :author, presence: true
-  validates :series, presence: true
+  validates :series, presence: true, unless: :not_in_ar
+  validates :atos_book_level, :ar_points, :interest_level, :word_count,
+    presence: true,
+    if: -> { ar_details_present? && !not_in_ar }
 
   # AR details group validations
   validates :atos_book_level, :ar_points, :interest_level, :word_count,
