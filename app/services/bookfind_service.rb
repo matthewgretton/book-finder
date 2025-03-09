@@ -60,8 +60,8 @@ class BookfindService
     response = HTTParty.get(
       "https://openlibrary.org/search.json",
       query: {
-        q: clean_query,
-        limit: 10 # Limit results to avoid too many AR lookups
+        q: query,
+        language: "eng"
       }
     )
 
