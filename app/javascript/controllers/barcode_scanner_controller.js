@@ -6,9 +6,8 @@ export default class extends Controller {
   static values = { url: String };
 
   connect() {
-    // Use a Map to store unique book details keyed by the scanned ISBN.
-    // The stored object will only have the title and author.
-    this.capturedBooks = new Map();
+    // Use a Set to store unique ISBNs
+    this.capturedIsbns = new Set();
     // Flag to throttle detections (prevents duplicate notifications)
     this.detectionPaused = false;
   }
@@ -37,20 +36,18 @@ export default class extends Controller {
       // User pressed the button to stop scanning and look up details.
       scanButton.value = "Looking up book details...";
       this.stopScanWithoutResettingButton();
-      console.log("Captured Books:", Array.from(this.capturedBooks.values()));
+      console.log("Captured ISBNs:", Array.from(this.capturedIsbns));
 
-      if (this.capturedBooks.size > 0) {
-        // Convert the Map values (which are objects of the form {title, author})
-        // to JSON and pass them to the Rails controller.
-        const booksArray = Array.from(this.capturedBooks.values());
-        window.location.href = `${this.urlValue}?books=${encodeURIComponent(JSON.stringify(booksArray))}`;
+      if (this.capturedIsbns.size > 0) {
+        const isbnArray = Array.from(this.capturedIsbns);
+        window.location.href = `${this.urlValue}?isbns=${isbnArray.join(',')}`;
       } else {
         scanButton.value = "Scan Barcode(s)";
-        alert("No valid book details were captured. Please try scanning again.");
+        alert("No valid barcodes were captured. Please try scanning again.");
       }
     } else {
       // Start a new scanning session.
-      this.capturedBooks.clear();
+      this.capturedIsbns.clear();
       this.startScan();
     }
   }
@@ -159,34 +156,17 @@ export default class extends Controller {
       const isbn = result.codeResult.code.replace(/[^0-9]/g, '');
       console.log("Detected ISBN:", isbn);
       if (this.isValidISBN(isbn)) {
-        if (!this.capturedBooks.has(isbn)) {
-          // Pause further detections temporarily.
+        if (!this.capturedIsbns.has(isbn)) {
+          // Add ISBN to the set
+          this.capturedIsbns.add(isbn);
+          // Notify the user
+          this.showNotification(`Scanned ISBN: ${isbn}`);
+          
+          // Pause further detections temporarily to avoid duplicates
           this.detectionPaused = true;
-          // Call Open Library to get book details.
-          fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`)
-            .then(response => response.json())
-            .then(data => {
-              const key = `ISBN:${isbn}`;
-              if (data && data[key]) {
-                const bookData = data[key];
-                const title = bookData.title;
-                const author = (bookData.authors && bookData.authors[0].name) || "Unknown Author";
-                // Store only the title and author.
-                this.capturedBooks.set(isbn, { title: title, author: author });
-                // Notify the user with the scanned book title.
-                this.showNotification(`Scanned "${title}"`);
-              } else {
-                console.log("No valid data returned from OpenLibrary for ISBN:", isbn);
-              }
-            })
-            .catch(err => {
-              console.error("Error fetching from OpenLibrary:", err);
-            })
-            .finally(() => {
-              setTimeout(() => {
-                this.detectionPaused = false;
-              }, 1000); // Adjust the pause duration as needed.
-            });
+          setTimeout(() => {
+            this.detectionPaused = false;
+          }, 1000);
         }
       }
     }
@@ -220,15 +200,15 @@ export default class extends Controller {
     notification.style.opacity = 1;
     
     // Adjust width settings so the box is wider and text doesn't wrap too much.
-    notification.style.width = "80%";          // Use 80% of the container's width.
-    notification.style.maxWidth = "800px";       // Allow up to 800px width.
-    notification.style.whiteSpace = "normal";    // Allow wrapping normally.
-    notification.style.textAlign = "center";     // Center the text.
+    notification.style.width = "80%";
+    notification.style.maxWidth = "800px";
+    notification.style.whiteSpace = "normal";
+    notification.style.textAlign = "center";
     
     // Additional styling for improved visibility.
-    notification.style.backgroundColor = "rgba(0, 0, 0, 0.7)"; // Semi-transparent dark background.
-    notification.style.color = "#fff";                         // White text.
-    notification.style.fontSize = "1.5rem";                    // Larger text.
+    notification.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+    notification.style.color = "#fff";
+    notification.style.fontSize = "1.5rem";
     notification.style.padding = "10px 20px";
     notification.style.borderRadius = "5px";
   

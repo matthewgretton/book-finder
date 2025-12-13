@@ -35,7 +35,7 @@ class BookfindService
 
   def search_by_isbn(isbn)
     result = find_book_by_isbn(isbn)
-    Rails.logger.info "OpenLibrary result = #{result}"
+    Rails.logger.info "ISBN lookup result = #{result}"
     return [] if result.nil?
 
     ar_results = adv_perform_search(result)
@@ -43,70 +43,13 @@ class BookfindService
     if ar_results.present?
       ar_results
     else
-      # Return placeholder with OpenLibrary data if not in AR
+      # Return placeholder with book data if not in AR
       [ BookDetails.new(
         title: result[:title],
         author: result[:author],
         not_in_ar: true
       ) ]
     end
-  end
-
-  def find_books_by_query(query)
-    # Remove quotes from query for OpenLibrary search
-    clean_query = query.gsub(/[""]/, "").strip
-
-    # Search OpenLibrary by title or author
-    response = HTTParty.get(
-      "https://openlibrary.org/search.json",
-      query: {
-        q: query,
-        language: "eng"
-      }
-    )
-
-    return [] unless response.success? && response["docs"].present?
-
-    # Process results
-    bob = response["docs"].map do |book|
-      {
-        title: book["title"],
-        author: book.dig("author_name", 0) || "Unknown Author"
-      }
-    end.uniq { |book| [ book[:title], book[:author] ] }
-
-    puts bob
-    bob
-  end
-
-  # Modify the existing search method to use the new flow
-  def search(query)
-    # First try to find books on OpenLibrary
-    Rails.logger.info "Searching OpenLibrary for query = #{query}"
-    open_library_results = TimeHelper.time_function("search_openlibrary for query = #{query}") do
-      find_books_by_query(query)
-    end
-
-    return [] if open_library_results.empty?
-
-    # For each OpenLibrary result, check AR BookFind
-    results = open_library_results.map do |book_data|
-      ar_results = adv_perform_search(book_data)
-
-      if ar_results.present?
-        # If found in AR, use those results
-        ar_results
-      else
-        # If not found in AR, create a placeholder with OpenLibrary data
-        BookDetails.new(
-          title: book_data[:title],
-          author: book_data[:author],
-          not_in_ar: true
-        )
-      end
-    end
-
-    results.flatten
   end
 
   def adv_perform_search(search_params)
@@ -154,8 +97,6 @@ class BookfindService
         form[FORM_FIELDS[:search_term]] = search_term
       end
     end
-
-
 
     def execute_search(session_type)
       begin
@@ -259,21 +200,20 @@ class BookfindService
 
     def find_book_by_isbn(isbn)
       response = HTTParty.get(
-        "https://openlibrary.org/api/books",
+        "https://www.googleapis.com/books/v1/volumes",
         query: {
-          bibkeys: "ISBN:#{isbn}",
-          format: "json",
-          jscmd: "data"
+          q: "isbn:#{isbn}",
+          maxResults: 1,
+          fields: "items(volumeInfo(title,authors))"
         }
       )
 
-      # OpenLibrary returns a hash with key "ISBN:#{isbn}"
-      book_data = response["ISBN:#{isbn}"]
-      return nil unless book_data
+      return nil if response["items"].nil? || response["items"].empty?
 
+      volume_info = response["items"].first["volumeInfo"]
       {
-        title: book_data["title"],
-        author: book_data.dig("authors", 0, "name")
+        title: volume_info["title"],
+        author: volume_info["authors"]&.first
       }
     end
 end
