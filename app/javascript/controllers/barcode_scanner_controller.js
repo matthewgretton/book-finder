@@ -202,32 +202,6 @@ export default class extends Controller {
       z-index: 10;
     `;
 
-    // Add a horizontal line in the middle
-    const scanLine = document.createElement("div");
-    scanLine.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, #00ff00, transparent);
-      animation: scanPulse 1.5s ease-in-out infinite;
-    `;
-    guide.appendChild(scanLine);
-
-    // Add the animation style if not already present
-    if (!document.getElementById("scan-animation-style")) {
-      const style = document.createElement("style");
-      style.id = "scan-animation-style";
-      style.textContent = `
-        @keyframes scanPulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 1; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
     // Add helper text
     const helperText = document.createElement("div");
     helperText.style.cssText = `
