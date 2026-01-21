@@ -62,7 +62,10 @@ export default class extends Controller {
       return;
     }
 
-    const barcodeHeight = 280;
+    const barcodeAspectRatio = 3.5; // width / height, approximates a standard EAN-13 barcode
+
+    const containerWidth = container.clientWidth || 640;
+    const barcodeHeight = Math.round(containerWidth / barcodeAspectRatio);
 
     container.style.height = `${barcodeHeight}px`;
     container.style.display = "block";
@@ -194,7 +197,8 @@ export default class extends Controller {
       left: 50%;
       transform: translate(-50%, -50%);
       width: 80%;
-      height: 60px;
+      aspect-ratio: 3.5 / 1;
+      height: auto;
       border: 3px solid rgba(255, 255, 255, 0.8);
       border-radius: 8px;
       box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
