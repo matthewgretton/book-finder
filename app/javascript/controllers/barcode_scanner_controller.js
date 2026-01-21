@@ -62,7 +62,7 @@ export default class extends Controller {
       return;
     }
 
-    const barcodeAspectRatio = 3.5; // width / height, approximates a standard EAN-13 barcode
+    const barcodeAspectRatio = 3.0; // width / height, tighter frame for ISBN barcodes
 
     const containerWidth = container.clientWidth || 640;
     const barcodeHeight = Math.round(containerWidth / barcodeAspectRatio);
@@ -197,7 +197,7 @@ export default class extends Controller {
       left: 50%;
       transform: translate(-50%, -50%);
       width: 80%;
-      aspect-ratio: 3.5 / 1;
+      aspect-ratio: 3 / 1;
       height: auto;
       border: 3px solid rgba(255, 255, 255, 0.8);
       border-radius: 8px;
