@@ -204,16 +204,51 @@ class BookfindService
         query: {
           q: "isbn:#{isbn}",
           maxResults: 1,
-          fields: "items(volumeInfo(title,authors))"
+          fields: "items(volumeInfo(title,authors,industryIdentifiers))"
         }
       )
 
       return nil if response["items"].nil? || response["items"].empty?
 
-      volume_info = response["items"].first["volumeInfo"]
+      volume_info = select_exact_isbn_match(response["items"], isbn)
+      return nil if volume_info.nil?
+
       {
         title: volume_info["title"],
         author: volume_info["authors"]&.first
       }
+    end
+
+    def select_exact_isbn_match(items, isbn)
+      target_isbns = [isbn]
+      if isbn.length == 13 && isbn.start_with?("978")
+        isbn10 = convert_isbn13_to_isbn10(isbn)
+        target_isbns << isbn10 if isbn10
+      end
+
+      items.each do |item|
+        identifiers = item.dig("volumeInfo", "industryIdentifiers") || []
+        matched = identifiers.any? do |identifier|
+          target_isbns.include?(identifier["identifier"])
+        end
+        return item["volumeInfo"] if matched
+      end
+
+      nil
+    end
+
+    def convert_isbn13_to_isbn10(isbn13)
+      return nil unless isbn13.length == 13 && isbn13.start_with?("978")
+
+      core = isbn13[3, 9]
+      sum = 0
+      core.chars.each_with_index do |char, index|
+        sum += char.to_i * (10 - index)
+      end
+      remainder = sum % 11
+      check = (11 - remainder) % 11
+      check_char = check == 10 ? "X" : check.to_s
+
+      "#{core}#{check_char}"
     end
 end

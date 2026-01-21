@@ -283,11 +283,17 @@ export default class extends Controller {
   }
 
   isValidISBN(isbn) {
-    return (
-      isbn.length === 13 &&
-      /^[0-9]+$/.test(isbn) &&
-      (isbn.startsWith("978") || isbn.startsWith("979"))
-    );
+    if (isbn.length !== 13 || !/^[0-9]+$/.test(isbn)) return false;
+    if (!(isbn.startsWith("978") || isbn.startsWith("979"))) return false;
+
+    // ISBN-13 checksum validation
+    let sum = 0;
+    for (let i = 0; i < 12; i += 1) {
+      const digit = parseInt(isbn[i], 10);
+      sum += i % 2 === 0 ? digit : digit * 3;
+    }
+    const checkDigit = (10 - (sum % 10)) % 10;
+    return checkDigit === parseInt(isbn[12], 10);
   }
 
   showNotification(message) {
