@@ -1,8 +1,8 @@
 # Name of your application. Used to uniquely configure containers.
-service: communitybookshelf_ar
+service: jubileepta_ar
 
 # Name of the container image.
-image: matthewgretton/communitybookshelf-ar
+image: matthewgretton/jubileepta-ar
 
 # Deploy to these servers.
 servers:
@@ -19,7 +19,7 @@ servers:
 # Note: If using Cloudflare, set encryption mode in SSL/TLS setting to "Full" to enable CF-to-app encryption.
 proxy:
   ssl: true
-  host: ar.communitybookshelf.app
+  host: ar.jubileepta.org.uk
   app_port: 3000
 
 # Credentials for your image host.
