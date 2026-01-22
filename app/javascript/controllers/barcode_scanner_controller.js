@@ -62,7 +62,9 @@ export default class extends Controller {
       return;
     }
 
-    const barcodeAspectRatio = 3.0; // width / height, tighter frame for ISBN barcodes
+    // Book barcodes can be plain EAN-13 or include a 5-digit add-on.
+    // Size the window to fit the wider case and show a smaller inner guide too.
+    const barcodeAspectRatio = 4.2; // width / height, fits ISBN + add-on
 
     const containerWidth = container.clientWidth || 640;
     const barcodeHeight = Math.round(containerWidth / barcodeAspectRatio);
@@ -197,13 +199,29 @@ export default class extends Controller {
       left: 50%;
       transform: translate(-50%, -50%);
       width: 80%;
-      aspect-ratio: 3 / 1;
+      aspect-ratio: 4.2 / 1;
       height: auto;
       border: 3px solid rgba(255, 255, 255, 0.8);
       border-radius: 8px;
       box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
       pointer-events: none;
       z-index: 10;
+    `;
+
+    const innerGuide = document.createElement("div");
+    innerGuide.className = "scan-target-guide-inner";
+    innerGuide.style.cssText = `
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70%;
+      aspect-ratio: 3 / 1;
+      height: auto;
+      border: 2px dashed rgba(255, 255, 255, 0.6);
+      border-radius: 6px;
+      pointer-events: none;
+      z-index: 11;
     `;
 
     // Add helper text
@@ -218,8 +236,9 @@ export default class extends Controller {
       text-shadow: 0 1px 3px rgba(0,0,0,0.8);
       white-space: nowrap;
     `;
-    helperText.textContent = "Position barcode within the box";
+    helperText.textContent = "Fit barcode within the box (inner = no add-on)";
     guide.appendChild(helperText);
+    guide.appendChild(innerGuide);
 
     container.appendChild(guide);
   }
