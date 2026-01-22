@@ -1,4 +1,4 @@
-name: "book_finder"
+name: "ar_lookup"
 
 services:
   rails-app:
