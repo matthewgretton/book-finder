@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+message="${1:-Update changes}"
+
+git add -A
+git commit -m "$message"
+git push
+
+bin/deploy
