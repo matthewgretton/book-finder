@@ -35,7 +35,7 @@ class BookfindService
 
   def search_by_isbn(isbn)
     result = find_book_by_isbn(isbn)
-    Rails.logger.info "ISBN lookup result = #{result}"
+    Rails.logger.info "ISBN lookup result = #{result.inspect}"
     return [] if result.nil?
 
     ar_results = adv_perform_search(result)
@@ -205,8 +205,15 @@ class BookfindService
           q: "isbn:#{isbn}",
           maxResults: 1,
           fields: "items(volumeInfo(title,authors,industryIdentifiers))"
-        }
+        },
+        timeout: 10
       )
+
+      Rails.logger.info "Google Books API response code=#{response.code} items_count=#{response['items']&.size}"
+      if response.code != 200
+        Rails.logger.warn "Google Books API non-200: body=#{response.body&.slice(0, 500)}"
+        return nil
+      end
 
       return nil if response["items"].nil? || response["items"].empty?
 
@@ -217,6 +224,9 @@ class BookfindService
         title: volume_info["title"],
         author: volume_info["authors"]&.first
       }
+    rescue StandardError => e
+      Rails.logger.error "Google Books API error for ISBN #{isbn}: #{e.class} #{e.message}"
+      nil
     end
 
     def select_exact_isbn_match(items, isbn)
