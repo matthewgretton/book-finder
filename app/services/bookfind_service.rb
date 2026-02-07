@@ -199,13 +199,16 @@ class BookfindService
     end
 
     def find_book_by_isbn(isbn)
+      query_params = {
+        q: "isbn:#{isbn}",
+        maxResults: 1,
+        fields: "items(volumeInfo(title,authors,industryIdentifiers))"
+      }
+      query_params[:key] = ENV["GOOGLE_BOOKS_API_KEY"] if ENV["GOOGLE_BOOKS_API_KEY"].present?
+
       response = HTTParty.get(
         "https://www.googleapis.com/books/v1/volumes",
-        query: {
-          q: "isbn:#{isbn}",
-          maxResults: 1,
-          fields: "items(volumeInfo(title,authors,industryIdentifiers))"
-        },
+        query: query_params,
         timeout: 10
       )
 

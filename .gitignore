@@ -34,6 +34,10 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
+# Kamal secret files (passwords, etc.)
+/.kamal/registry_password
+/.kamal/google_books_api_key
+
 /vendor/bundle
 /vendor/cache
 /vendor/gems
