@@ -4,16 +4,26 @@ export default class extends Controller {
   static targets = ["table", "wrapper"];
 
   connect() {
+    this.boundAdjustScale = this.adjustScale.bind(this);
     this.adjustScale();
-    window.addEventListener("resize", this.adjustScale.bind(this));
+    window.addEventListener("resize", this.boundAdjustScale);
+
+    // Rows stream in after initial render (ISBN lookups, detail fills), so
+    // re-scale whenever the table's contents change.
+    this.observer = new MutationObserver(this.boundAdjustScale);
+    this.observer.observe(this.tableTarget, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
   }
 
   disconnect() {
-    window.removeEventListener("resize", this.adjustScale.bind(this));
+    window.removeEventListener("resize", this.boundAdjustScale);
+    if (this.observer) this.observer.disconnect();
   }
 
   adjustScale() {
-    console.log("Adjusting table scale...");
     const table = this.tableTarget;
     const wrapper = this.wrapperTarget;
 

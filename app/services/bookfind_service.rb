@@ -35,6 +35,13 @@ class BookfindService
   end
 
   def search_by_isbn(isbn)
+    # AR Bookfind can search by ISBN directly; prefer that over resolving the
+    # ISBN through Google Books, which rate-limits bursts of lookups.
+    direct_results = adv_perform_search(isbn: isbn)
+    return direct_results if direct_results.present?
+
+    # The scanned edition may not be indexed by AR, so resolve the ISBN to a
+    # title/author and search with those instead.
     result = find_book_by_isbn(isbn)
     Rails.logger.info "ISBN lookup result = #{result.inspect}"
     return [] if result.nil?
@@ -74,8 +81,9 @@ class BookfindService
 
   def adv_perform_search(search_params)
     execute_search(:advanced) do |form|
-      # Clear existing values
-      FORM_FIELDS.slice(:title, :author).each do |_, field|
+      # Clear existing values (the session's form object persists between
+      # searches, so stale fields would leak into the next query)
+      FORM_FIELDS.slice(:title, :author, :isbn).each do |_, field|
         form[field] = ""
       end
 
@@ -226,11 +234,18 @@ class BookfindService
       }
       query_params[:key] = ENV["GOOGLE_BOOKS_API_KEY"] if ENV["GOOGLE_BOOKS_API_KEY"].present?
 
-      response = HTTParty.get(
-        "https://www.googleapis.com/books/v1/volumes",
-        query: query_params,
-        timeout: 10
-      )
+      response = nil
+      3.times do |attempt|
+        response = HTTParty.get(
+          "https://www.googleapis.com/books/v1/volumes",
+          query: query_params,
+          timeout: 10
+        )
+        # Google Books intermittently returns 503/429 under burst load
+        break unless [ 429, 503 ].include?(response.code)
+        Rails.logger.warn "Google Books API #{response.code} for ISBN #{isbn}, retrying (attempt #{attempt + 1})"
+        sleep(0.5 * (attempt + 1))
+      end
 
       Rails.logger.info "Google Books API response code=#{response.code} items_count=#{response['items']&.size}"
       if response.code != 200
