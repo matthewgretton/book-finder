@@ -1,6 +1,7 @@
 class BooksController < ApplicationController
   def search
     @books = []
+    @pending_isbns = []
     query = params[:query]
 
     if query.present?
@@ -11,18 +12,35 @@ class BooksController < ApplicationController
         BookfindService.instance.search(query)
       end
     elsif params[:isbns].present?
-      isbns = params[:isbns].split(",")
-
-      isbn_threads = isbns.map do |isbn|
-        Thread.new do
-          TimeHelper.time_function("search_arbookfind for ISBN #{isbn}") do
-            BookfindService.instance.search_by_isbn(isbn)
-          end
-        end
-      end
-      @books = isbn_threads.map(&:value).flatten
+      # Render placeholder rows immediately; each ISBN is looked up by its
+      # own follow-up request (see #isbn_lookup) so results stream in.
+      @pending_isbns = params[:isbns].split(",").map { |isbn| isbn.gsub(/\D/, "") }.reject(&:empty?).uniq
     end
 
     render :search
+  end
+
+  def isbn_lookup
+    isbn = params[:isbn].to_s.gsub(/\D/, "")
+
+    books = TimeHelper.time_function("search_arbookfind for ISBN #{isbn}") do
+      BookfindService.instance.search_by_isbn(isbn)
+    end
+
+    render turbo_stream: turbo_stream.replace(
+      "isbn-row-#{isbn}",
+      partial: "books/isbn_result",
+      locals: { books: books, isbn: isbn }
+    )
+  end
+
+  def details
+    details = BookfindService.instance.fetch_details(params[:path].to_s)
+
+    if details
+      render json: details
+    else
+      head :unprocessable_entity
+    end
   end
 end

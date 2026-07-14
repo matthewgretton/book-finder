@@ -2,7 +2,8 @@ class BookDetails
   include ActiveModel::Model
 
   attr_accessor :title, :author, :series, :atos_book_level,
-                :ar_points, :interest_level, :word_count, :not_in_ar
+                :ar_points, :interest_level, :word_count, :not_in_ar,
+                :detail_path
 
   validates :series, presence: true, unless: :not_in_ar
   validates :atos_book_level, :ar_points, :interest_level, :word_count,

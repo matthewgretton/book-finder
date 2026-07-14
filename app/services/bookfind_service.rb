@@ -27,6 +27,7 @@ class BookfindService
 
   def initialize
     setup_sessions
+    @session_mutexes = { basic: Mutex.new, advanced: Mutex.new }
   end
 
   def search(query)
@@ -50,6 +51,25 @@ class BookfindService
         not_in_ar: true
       ) ]
     end
+  end
+
+  # Fetches series and word count from a book's detail page. Uses a fresh
+  # agent so concurrent lookups don't share Mechanize state.
+  def fetch_details(detail_path)
+    return nil unless detail_path.to_s.match?(/\Abookdetail\.aspx\?/)
+
+    agent = Mechanize.new
+    page = agent.get("https://www.arbookfind.co.uk/#{detail_path}")
+    page = submit_user_type(page)
+    doc = Nokogiri::HTML(page.body)
+
+    {
+      series: extract_series(doc),
+      word_count: extract_word_count(doc)
+    }
+  rescue OpenSSL::SSL::SSLError, Mechanize::Error, Net::HTTP::Persistent::Error => e
+    Rails.logger.error "Detail fetch error for #{detail_path}: #{e.message}"
+    nil
   end
 
   def adv_perform_search(search_params)
@@ -80,16 +100,20 @@ class BookfindService
       Rails.logger.info "Setting up AR Bookfind session for #{endpoint}"
       agent = Mechanize.new
       page = agent.get("https://www.arbookfind.co.uk/#{endpoint}")
-
-      if form = page.form_with(name: "form1")
-        radio = form.radiobutton_with(value: "radParent")
-        if radio
-          radio.check
-          page = form.submit(form.button_with(name: "btnSubmitUserType"))
-        end
-      end
+      page = submit_user_type(page)
 
       { page: page, agent: agent }
+    end
+
+    # First request in a fresh session gets a "who are you" interstitial;
+    # answering it redirects to the originally requested page.
+    def submit_user_type(page)
+      form = page.form_with(name: "form1")
+      radio = form && form.radiobutton_with(value: "radParent")
+      return page unless radio
+
+      radio.check
+      form.submit(form.button_with(name: "btnSubmitUserType"))
     end
 
     def perform_search(search_term)
@@ -98,44 +122,48 @@ class BookfindService
       end
     end
 
-    def execute_search(session_type)
-      begin
-        session = @sessions[session_type]
-        form = session[:page].form_with(name: "aspnetForm")
+    def execute_search(session_type, &block)
+      # The Mechanize session (page + form objects) is shared, so concurrent
+      # searches must not interleave on it.
+      @session_mutexes[session_type].synchronize do
+        begin
+          session = @sessions[session_type]
+          form = session[:page].form_with(name: "aspnetForm")
 
-        if form
-          yield(form)
-          submit_button = form.button_with(name: FORM_FIELDS[:submit])
+          if form
+            yield(form)
+            submit_button = form.button_with(name: FORM_FIELDS[:submit])
 
-          if submit_button
-            results_page = form.submit(submit_button)
-            parse_results(session[:agent], results_page)
+            if submit_button
+              results_page = form.submit(submit_button)
+              parse_results(results_page)
+            else
+              Rails.logger.error "No submit button found"
+              []
+            end
           else
-            Rails.logger.error "No submit button found"
+            Rails.logger.error "No form found"
             []
           end
-        else
-          Rails.logger.error "No form found"
-          []
+        rescue OpenSSL::SSL::SSLError, Mechanize::Error, Net::HTTP::Persistent::Error => e
+          Rails.logger.error "Search error: #{e.message}"
+          @sessions[session_type] = setup_single_session(session_type == :basic ? "default.aspx" : "advanced.aspx")
+          retry
         end
-      rescue OpenSSL::SSL::SSLError, Mechanize::Error, Net::HTTP::Persistent::Error => e
-        Rails.logger.error "Search error: #{e.message}"
-        @sessions[session_type] = setup_single_session(session_type == :basic ? "default.aspx" : "advanced.aspx")
-        retry
       end
     end
 
-    def parse_results(agent, page)
+    def parse_results(page)
       doc = Nokogiri::HTML(page.body)
 
       no_results = doc.at_css("span#ctl00_ContentPlaceHolder1_lblNoResults")
       return [] if no_results && no_results.text.strip.present?
 
       book_details = doc.css("table.book-result")
-      book_details.map { |detail| extract_book_from_details(agent, detail) }.compact
+      book_details.map { |detail| extract_book_from_details(detail) }.compact
     end
 
-    def extract_book_from_details(agent, book_detail)
+    def extract_book_from_details(book_detail)
       detail_cell = book_detail.at_css("td.book-detail")
       return nil unless detail_cell
 
@@ -146,20 +174,12 @@ class BookfindService
       meta_paragraph = detail_cell.at_css("p")
       author = meta_paragraph ? meta_paragraph.text.strip.split("\n").first&.strip : "Unknown Author"
 
-      if title_link["href"]
-        detail_link = title_link["href"]
-        detail_page_url = "https://www.arbookfind.co.uk/#{detail_link}"
-        detail_page = agent.get(detail_page_url)
-        detail_doc = Nokogiri::HTML(detail_page.body)
-
-        BookDetails.new(
-          title: title,
-          author: author,
-          series: extract_series(detail_doc),
-          word_count: extract_word_count(detail_doc),
-          **extract_other_details(meta_paragraph)
-        )
-      end
+      BookDetails.new(
+        title: title,
+        author: author,
+        detail_path: title_link["href"],
+        **extract_other_details(meta_paragraph)
+      )
     end
 
     def extract_series(doc)

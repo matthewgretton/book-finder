@@ -1,0 +1,9 @@
+<% if books.any? %>
+  <% books.each do |book| %>
+    <%= render "books/book_row", book: book %>
+  <% end %>
+<% else %>
+  <tr>
+    <td colspan="7" style="text-align: center;">No match found for ISBN <%= isbn %></td>
+  </tr>
+<% end %>

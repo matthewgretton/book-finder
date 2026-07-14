@@ -1,0 +1,28 @@
+<tr <% if book.detail_path.present? && !book.not_in_ar %>
+      data-controller="book-details"
+      data-book-details-url-value="<%= book_details_path(path: book.detail_path) %>"
+    <% end %>>
+  <td><%= book.title %></td>
+  <td><%= book.author %></td>
+  <% if book.not_in_ar %>
+    <td colspan="5" style="text-align: center;">Not on AR</td>
+  <% else %>
+    <td data-book-details-target="series"><%= book.series.presence || "…" %></td>
+    <td data-tooltip="<%= case book.interest_level
+        when 'LY' then 'Lower Years: Ages 5-8'
+        when 'MY' then 'Middle Years: Ages 9-11'
+        when 'MY+' then 'Middle Years Plus: Ages 12-13'
+        when 'UY' then 'Upper Years: Ages 14+'
+        when 'LG' then 'Lower Grades: Ages 5-8'
+        when 'MG' then 'Middle Grades: Ages 9-11'
+        when 'MG+' then 'Middle Grades Plus: Ages 12-13'
+        when 'UG' then 'Upper Grades: Ages 14+'
+        else 'Unknown Interest Level'
+      end %>">
+      <%= book.interest_level %>
+    </td>
+    <td><%= book.atos_book_level %></td>
+    <td><%= book.ar_points %></td>
+    <td data-book-details-target="wordCount"><%= book.word_count.presence || "…" %></td>
+  <% end %>
+</tr>
